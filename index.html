@@ -1,0 +1,2585 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>ระบบจัดการเคส CasePool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Sarabun',sans-serif;}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--bg4:#30363d;
+  --border:#30363d;--text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --blue:#58a6ff;--blue2:#1f6feb;--green:#3fb950;--red:#f85149;
+  --yellow:#d29922;--purple:#bc8cff;--orange:#ffa657;--cyan:#39d353;
+  --radius:8px;--shadow:0 8px 24px rgba(0,0,0,.4);
+}
+body.light{
+  --bg:#f0f2f5;--bg2:#ffffff;--bg3:#f6f8fa;--bg4:#d0d7de;
+  --border:#d0d7de;--text:#1f2328;--text2:#656d76;--text3:#848d97;
+  --blue:#0969da;--blue2:#0550ae;--green:#1a7f37;--red:#cf222e;
+  --yellow:#9a6700;--purple:#8250df;--orange:#bc4c00;
+  --shadow:0 8px 24px rgba(0,0,0,.12);
+}
+body{background:var(--bg);color:var(--text);min-height:100vh;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:3px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.btn{cursor:pointer;border:none;border-radius:6px;padding:8px 16px;font-size:14px;font-weight:600;transition:all .15s;}
+.btn-primary{background:var(--blue2);color:#fff;}
+.btn-primary:hover{background:#388bfd;}
+.btn-danger{background:#da3633;color:#fff;}
+.btn-danger:hover{background:#f85149;}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
+.btn-ghost:hover{background:var(--bg3);color:var(--text);}
+.btn-green{background:#238636;color:#fff;}
+.btn-green:hover{background:#2ea043;}
+input,select,textarea{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 12px;font-size:14px;outline:none;width:100%;}
+input:focus,select:focus,textarea:focus{border-color:var(--blue);}
+select option{background:var(--bg3);}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow);}
+.modal-hd{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.modal-bd{padding:20px;}
+.modal-ft{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th{background:var(--bg3);padding:10px 12px;text-align:left;color:var(--text2);font-weight:600;white-space:nowrap;}
+td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
+tr:hover td{background:rgba(255,255,255,.02);}
+tr.clickable{cursor:pointer;}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:12px;}
+/* Sidebar */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:220px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:50;}
+.sidebar-logo{padding:20px 16px 16px;border-bottom:1px solid var(--border);}
+.sidebar-nav{flex:1;padding:8px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:6px;cursor:pointer;margin-bottom:2px;color:var(--text2);font-size:14px;transition:all .15s;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:#1f6feb22;color:var(--blue);border-left:3px solid var(--blue);}
+.main-content{margin-left:220px;min-height:100vh;}
+/* Bottom Nav (mobile) */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);z-index:50;}
+.bottom-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px;cursor:pointer;color:var(--text2);font-size:11px;gap:2px;}
+.bottom-nav-item.active{color:var(--blue);}
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .main-content{margin-left:0;padding-bottom:70px;}
+  .bottom-nav{display:flex;}
+}
+.page{padding:20px;}
+.page-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.page-title{font-size:20px;font-weight:700;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;}
+.stat-num{font-size:28px;font-weight:800;}
+.stat-lbl{font-size:12px;color:var(--text2);margin-top:4px;}
+/* Status colors */
+.s-wait{background:#3a3d42;color:#ffffff;border:1px solid #6e7681;}
+.s-go{background:#1a4731;color:#3fb950;}
+.s-nurse{background:#3d2b00;color:#ffa657;}
+.s-half{background:#2d1b00;color:#d29922;}
+.s-cant{background:#3d1515;color:#f85149;}
+.s-later{background:#2b1f3d;color:#bc8cff;}
+.s-book{background:#0d2149;color:#58a6ff;}
+.s-sign{background:#0d3149;color:#39d353;}
+.s-wait2{background:#1a2a3d;color:#79c0ff;}
+.s-approve{background:#132d18;color:#3fb950;}
+.s-close{background:#5a0a0a;color:#ff6b6b;}
+.s-reject{background:#3d0a0a;color:#f85149;}
+.s-release{background:#0a2418;color:#3fb950;}
+.s-other{background:#2d1500;color:#ffa657;}
+.s-throw{background:#3d2e00;color:#ffd700;}
+/* Market Card (old - for other pages) */
+.market-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:12px;}
+.market-card:hover{border-color:var(--blue2);}
+/* New Market Layout */
+.mk-page{display:flex;flex-direction:column;min-height:100vh;}
+.mk-hero{background:linear-gradient(135deg,#0d1b2a 0%,#1a2744 60%,#0f2233 100%);padding:24px 24px 0;border-bottom:1px solid var(--border);}
+.mk-hero-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;}
+.mk-stats{display:flex;gap:4px;}
+.mk-stat{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px 20px;text-align:center;min-width:90px;}
+.mk-stat-num{font-size:26px;font-weight:800;line-height:1;}
+.mk-stat-lbl{font-size:11px;color:var(--text2);margin-top:3px;}
+.mk-body{display:flex;flex:1;gap:0;}
+.mk-cards-area{flex:1;padding:20px;min-width:0;}
+.mk-sidebar{width:280px;flex-shrink:0;border-left:1px solid var(--border);padding:16px;background:var(--bg2);}
+.mk-cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;}
+.mkc{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px;transition:all .2s;cursor:default;}
+.mkc:hover{border-color:var(--blue2);box-shadow:0 4px 20px rgba(31,111,235,.15);}
+.mkc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}
+.mkc-id{font-size:15px;font-weight:800;color:var(--blue);}
+.mkc-date{font-size:11px;background:#2d2000;color:var(--yellow);padding:3px 8px;border-radius:20px;border:1px solid #4a3500;}
+.mkc-name{font-size:15px;font-weight:700;margin-bottom:8px;}
+.mkc-badges{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.mkc-contact{font-size:12px;color:var(--text2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+.mkc-report{font-size:12px;color:var(--text2);background:var(--bg3);padding:8px 10px;border-radius:6px;margin-bottom:12px;line-height:1.6;max-height:72px;overflow:hidden;}
+.mkc-actions{display:flex;gap:8px;}
+.btn-claim{flex:1;background:var(--blue2);color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;}
+.btn-claim:hover{background:#388bfd;transform:translateY(-1px);}
+.btn-claim:disabled{background:#1a3a5c;color:#4a7ab5;cursor:not-allowed;transform:none;}
+.btn-skip{background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:13px;cursor:pointer;transition:all .15s;}
+.btn-skip:hover{background:var(--bg4);}
+.mk-sb-section{margin-bottom:20px;}
+.mk-sb-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:10px;display:flex;align-items:center;gap:6px;text-transform:uppercase;letter-spacing:.5px;}
+.lb-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.lb-rank{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;}
+.sb-stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg3);border-radius:8px;margin-bottom:6px;}
+@media(max-width:900px){.mk-sidebar{display:none;}}
+@media(max-width:600px){.mk-cards-grid{grid-template-columns:1fr;}.mk-hero{padding:16px 16px 0;}.mk-cards-area{padding:12px;}.mk-stats{flex-wrap:wrap;gap:6px;}.mk-stat{min-width:70px;padding:10px 12px;}}
+/* Notif dot */
+.notif-dot{width:8px;height:8px;background:var(--red);border-radius:50%;display:inline-block;}
+/* Loading */
+.loading{display:flex;align-items:center;justify-content:center;padding:60px;color:var(--text2);}
+.spin{display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.skeleton{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:800px 100%;animation:shimmer 1.4s infinite;border-radius:6px;}
+
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px;font-weight:500;}
+.search-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.tag{padding:2px 8px;border-radius:20px;font-size:12px;background:var(--bg3);border:1px solid var(--border);}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef,createContext,useContext} = React;
+
+// ============================================================
+// ⚙️ CONFIG — ใส่ URL ของ Apps Script Web App ตรงนี้
+// ============================================================
+const API_URL = 'https://script.google.com/macros/s/AKfycbxHczRputv2j_iAbRGXXQ62gQVdYAsVldetYmZqo9EceB9uL_30l0H8j1T-eFz6GO__/exec';
+
+// ── Theme persistence ──
+(function(){
+  try{ if(localStorage.getItem('cp_theme')==='light') document.body.classList.add('light'); }catch(e){}
+})();
+function toggleTheme(){
+  document.body.classList.toggle('light');
+  try{ localStorage.setItem('cp_theme', document.body.classList.contains('light')?'light':'dark'); }catch(e){}
+}
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+const STATUSES = ['รอข้อมูล','ไปต่อได้','เคสเลี้ยง','เคสวัด 50/50','ติดต่อไม่ได้','ยังไม่สะดวก','จอง','รอเซ็นต์','รอผล','อนุมัติ','ปิดเคส','รีเจค','ปล่อยแล้ว','ได้รถจากที่อื่น','โยนเคส'];
+const BOOK_STATUSES = ['จองแล้ว','รอเซ็นต์','รอผล','อนุมัติ','ปล่อยรถ','รีเจค','ปิดเคส'];
+const CONTACT_BY = ['เบอร์','ไลน์','QR Code','เบอร์&ไลน์'];
+const SENT_TYPES = ['ปกติ','ส่วนตัว'];
+const CAR_MODELS = {
+  Honda:['Civic FC','Civic FK','Civic FE','City','Jazz','HR-V','CR-V','Accord','Mobilio'],
+  Toyota:['Yaris','Vios','Altis','Revo','VIGO','Fortuner','Cross','C-HR','Camry','Veloz','Alphard','Sienta','Avanza','Prius','Innova'],
+  Isuzu:['D-Max','MU-X','MU-7','X-Series'],
+  Mazda:['2','3','CX-3','CX-30','BT-50'],
+  MG:['3','5','ZS'],
+  Nissan:['Navara','Almera','Note','March','Sylphy','Teana','Juke'],
+  Mitsubishi:['Triton','Mirage','Attrage','Xpander','Pajero'],
+  Suzuki:['Swift','Ciaz','Carry']
+};
+
+function getStatusClass(s){
+  const m={'รอข้อมูล':'s-wait','ไปต่อได้':'s-go','เคสเลี้ยง':'s-nurse','เคสวัด 50/50':'s-half','ติดต่อไม่ได้':'s-cant','ยังไม่สะดวก':'s-later','จอง':'s-book','รอเซ็นต์':'s-sign','รอผล':'s-wait2','อนุมัติ':'s-approve','ปิดเคส':'s-close','รีเจค':'s-reject','ปล่อยแล้ว':'s-release','ได้รถจากที่อื่น':'s-other','โยนเคส':'s-throw','จองแล้ว':'s-book'};
+  return m[s]||'s-wait';
+}
+
+function displayContact(contact){
+  if(!contact&&contact!==0) return '-';
+  const s=String(contact).trim();
+  if(s.startsWith('data:image')||s.startsWith('https://drive.google.com')) return '📷 QR Code';
+  return formatContact(s)||'-';
+}
+function formatContact(contact){
+  if(!contact&&contact!==0) return '';
+  const s=String(contact).trim();
+  if(s.startsWith('http')||s.startsWith('data:')) return s;
+  // เบอร์ไทย 10 หลัก ถ้า Sheets ตัด 0 จะเหลือ 9 หลัก
+  if(/^\d{9}$/.test(s)) return '0'+s;
+  // เผื่อ 8 หลัก (เบอร์บ้าน)
+  if(/^\d{8}$/.test(s)) return '0'+s;
+  return s;
+}
+
+// ============================================================
+// API + CACHE LAYER
+// ============================================================
+const _cache = {};          // key → {data, ts}
+const CACHE_TTL = 30000;    // 30 วินาที
+
+function cacheKey(action, data){
+  return action + ':' + JSON.stringify(data||{});
+}
+function cacheGet(action, data){
+  const k = cacheKey(action, data);
+  const c = _cache[k];
+  if(c && (Date.now() - c.ts) < CACHE_TTL) return c.data;
+  return null;
+}
+function cacheSet(action, data, result){
+  _cache[cacheKey(action, data)] = {data: result, ts: Date.now()};
+}
+function cacheClear(patterns){
+  // ล้าง cache ที่เกี่ยวข้อง เช่น ['getCases','getDashboard']
+  (patterns||[]).forEach(p=>{
+    Object.keys(_cache).forEach(k=>{ if(k.startsWith(p)) delete _cache[k]; });
+  });
+}
+
+const CACHEABLE = ['getCases','getMarket','getUsers','getBookings','getDashboard','getNotifications','getClaimedCases'];
+// actions ที่ทำให้ cache invalidate
+const INVALIDATE_MAP = {
+  addCase:      ['getCases','getDashboard'],
+  updateCase:   ['getCases','getDashboard'],
+  sendToMarket: ['getCases','getMarket','getDashboard'],
+  claimCase:    ['getMarket','getClaimedCases','getDashboard'],
+  returnCase:   ['getMarket','getClaimedCases'],
+  updateClaimed:['getClaimedCases'],
+  closeMarketCase:['getMarket','getCases'],
+  adminChangeSales:['getCases'],
+  adminPullCase:['getCases'],
+  addBooking:   ['getBookings'],
+  updateBooking:['getBookings'],
+};
+
+async function api(action, data={}) {
+  if(!API_URL) return demoApi(action, data);
+
+  const isGet = ['getCases','getMarket','getUsers','getBookings','getDashboard','getHistory','getNotifications','getClaimedCases','searchCases'].includes(action);
+
+  // ใช้ cache สำหรับ GET actions
+  if(CACHEABLE.includes(action)){
+    const cached = cacheGet(action, data);
+    if(cached) return cached;
+  }
+
+  try {
+    let url, opts;
+    if(isGet) {
+      const q=new URLSearchParams({action,...data}).toString();
+      url=API_URL+'?'+q;
+      opts={method:'GET',redirect:'follow',mode:'cors'};
+    } else {
+      url=API_URL+'?action='+action;
+      opts={method:'POST',redirect:'follow',mode:'cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(data)};
+    }
+    const r=await fetch(url, opts);
+    const text=await r.text();
+    let result;
+    try{result=JSON.parse(text);}catch(e){result={success:false,error:'Parse error: '+text.slice(0,100)};}
+
+    // เก็บ cache และ invalidate
+    if(CACHEABLE.includes(action) && result.success) cacheSet(action, data, result);
+    if(INVALIDATE_MAP[action]) cacheClear(INVALIDATE_MAP[action]);
+
+    return result;
+  } catch(e) {
+    return {success:false,error:e.toString()};
+  }
+}
+
+// warm-up: ping Apps Script ตอนโหลดหน้า เพื่อลด cold start
+if(API_URL){ setTimeout(()=>fetch(API_URL+'?action=ping',{method:'GET',mode:'cors'}).catch(()=>{}), 500); }
+
+
+// ============================================================
+// DEMO DATA (ใช้เมื่อยังไม่ได้ตั้งค่า API_URL)
+// ============================================================
+const DEMO = {
+  users:[
+    {userId:'U001',username:'admin',password:'admin1234',name:'แอดมิน',role:'Admin',status:'active',avatar:''},
+    {userId:'U002',username:'fab',password:'fab1234',name:'แฟ้บ',role:'Sales',status:'active',avatar:''},
+    {userId:'U003',username:'paint',password:'paint1234',name:'เพ้นท์',role:'Sales',status:'active',avatar:''},
+    {userId:'U004',username:'peer',password:'peer1234',name:'พีร์',role:'Sales',status:'active',avatar:''},
+    {userId:'U005',username:'view',password:'view1234',name:'วิว',role:'Sales',status:'active',avatar:''},
+  ],
+  cases:[
+    {caseid:'2603001',customername:'Ball Nontawat',contact:'0987233440',report:'เคสนี้ลูกค้ายังไม่ถูกใจรถ',status:'รอข้อมูล',sales:'เพ้นท์',createdat:'01/03/2026 09:00:00',updatedat:'01/03/2026 09:00:00',sent:'ปกติ'},
+    {caseid:'2603002',customername:'Ao Wanpen',contact:'0955293262',report:'นัดลูกค้าเข้ามาหน้าร้านพรุ่งนี้',status:'ไปต่อได้',sales:'พีร์',createdat:'01/03/2026 10:00:00',updatedat:'02/03/2026 10:00:00',sent:'ปกติ'},
+    {caseid:'2603003',customername:'Butsakorn Zom',contact:'0830954261',report:'เคสนี้ต่อไม่ได้ค่ะ',status:'ปิดเคส',sales:'แฟ้บ',createdat:'01/03/2026 11:00:00',updatedat:'01/03/2026 11:00:00',sent:'ปกติ'},
+    {caseid:'2603004',customername:'แบ มจิ',contact:'QRcode',report:'ลูกค้ามีรถเก่าจะเอามาเทิร์น',status:'รอข้อมูล',sales:'เพ้นท์',createdat:'01/03/2026 12:00:00',updatedat:'01/03/2026 12:00:00',sent:'ปกติ'},
+    {caseid:'2603005',customername:'JJoy Wannida',contact:'0613090955',report:'ลูกค้าต้องการรถราคาไม่เกิน 5 แสน',status:'รอข้อมูล',sales:'แฟ้บ',createdat:'01/03/2026 13:00:00',updatedat:'01/03/2026 13:00:00',sent:'ปกติ'},
+    {caseid:'2603006',customername:'Sarunyu Cheram',contact:'QRcode',report:'รอข้อมูลเพิ่มเติมจากลูกค้า',status:'เคสวัด 50/50',sales:'พีร์',createdat:'02/03/2026 09:00:00',updatedat:'02/03/2026 09:00:00',sent:'ปกติ'},
+  ],
+  market:[
+    {ID:'2603003',name:'Butsakorn Zom',contact_by:'ไลน์',contact:'0830954261',report:'เคสนี้ต่อไม่ได้ค่ะ',status:'ปิดเคส',old_sales:'แฟ้บ',ExpiredSales:'แฟ้บ',PoolStatus:'เปิด'},
+    {ID:'2603004',name:'แบ มจิ',contact_by:'QRcode',contact:'',report:'ลูกค้ามีรถเก่าจะเอามาเทิร์น',status:'รอข้อมูล',old_sales:'เพ้นท์',ExpiredSales:'เพ้นท์',PoolStatus:'เปิด'},
+  ],
+  claimedcases:[
+    {caseID:'2602001',customername:'ลูกค้าตัวอย่าง',contact:'0812345678',report:'รับมาจากตลาด',status:'รอข้อมูล',fromsales:'แฟ้บ',sale:'พีร์',date:'28/02/2026 10:00:00',newstatus:'ไปต่อได้',AssignedAt:'28/02/2026 10:00:00',Notes:''},
+  ],
+  bookings:[
+    {วันที่:'03/03/2026 23:50:00',CaseID:'2603002',เซลส์:'เพ้นท์',ลูกค้า:'ทอฝัน ทองจันทร์',Facebook:'ทอฝัน ทองจันทร์',Ads:'',รถ:'ISUZU',รุ่น:'D-MAX',ทะเบียน:'7240',สถานะ:'จองแล้ว',หมายเหตุ:''},
+  ],
+  history:[
+    {historyId:'H00001','รหัสเคส':'2603001','เซลส์':'เพ้นท์',action:'เพิ่มเคส',detail:'เพิ่มเคสใหม่: Ball Nontawat','วันที่':'01/03/2026 09:00:00'},
+    {historyId:'H00002','รหัสเคส':'2603001','เซลส์':'เพ้นท์',action:'แก้ไข',detail:'เปลี่ยนสถานะเป็น รอข้อมูล','วันที่':'01/03/2026 10:00:00'},
+  ],
+  notifications:[
+    {notifId:'N00001','เซลส์':'พีร์','รหัสเคส':'2602001',message:'✅ รับเคส 2602001 เรียบร้อย','วันที่':'28/02/2026 10:00:00','สถานะ':'unread'},
+    {notifId:'N00002','เซลส์':'แฟ้บ','รหัสเคส':'2603005',message:'⏰ เคส 2603005 ไม่อัปเดต 23 ชั่วโมงแล้ว','วันที่':'02/03/2026 12:00:00','สถานะ':'unread'},
+  ]
+};
+
+function demoApi(action, data){
+  switch(action){
+    case 'login': {
+      const u=DEMO.users.find(x=>x.username===data.username&&x.password===data.password&&x.status==='active');
+      if(!u) return {success:false,error:'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'};
+      return {success:true,user:{...u}};
+    }
+    case 'getUsers': return {success:true,data:DEMO.users};
+    case 'getCases': return {success:true,data:data.sales&&data.sales!=='all'?DEMO.cases.filter(c=>c.sales===data.sales):DEMO.cases};
+    case 'addCase': {
+      const d=new Date(),yy=String(d.getFullYear()).slice(-2),mm=String(d.getMonth()+1).padStart(2,'0');
+      const pre=yy+mm,max=DEMO.cases.filter(c=>String(c.caseid).startsWith(pre)).reduce((m,c)=>{const n=parseInt(String(c.caseid).slice(4))||0;return n>m?n:m;},0);
+      const id=pre+String(max+1).padStart(3,'0');
+      DEMO.cases.push({caseid:id,...data,createdat:new Date().toLocaleString('th-TH'),updatedat:new Date().toLocaleString('th-TH')});
+      return {success:true,caseId:id};
+    }
+    case 'updateCase': {
+      const idx=DEMO.cases.findIndex(c=>String(c.caseid)===String(data.caseid));
+      if(idx>=0) Object.assign(DEMO.cases[idx],data,{updatedat:new Date().toLocaleString('th-TH')});
+      return {success:true};
+    }
+    case 'searchCases': {
+      const q=(data.q||'').toLowerCase();
+      return {success:true,data:DEMO.cases.filter(c=>String(c.caseid).toLowerCase().includes(q)||String(c.customername).toLowerCase().includes(q)||String(c.contact).toLowerCase().includes(q))};
+    }
+    case 'getMarket': {
+      let r=[...DEMO.market].filter(x=>x.PoolStatus!=='ปิด');
+      if(data.sales) r=r.filter(x=>!x.ExpiredSales||!x.ExpiredSales.split(',').includes(data.sales));
+      return {success:true,data:r};
+    }
+    case 'sendToMarket': {
+      const c=DEMO.cases.find(x=>String(x.caseid)===String(data.caseId));
+      const ex=DEMO.market.find(x=>String(x.ID)===String(data.caseId));
+      if(!ex&&c) DEMO.market.push({ID:data.caseId,name:c.customername,contact_by:'',contact:c.contact,report:c.report,status:c.status,old_sales:data.sales,ExpiredSales:data.sales,PoolStatus:'เปิด'});
+      else if(ex) ex.PoolStatus='เปิด';
+      return {success:true};
+    }
+    case 'closeMarketCase': {
+      const mk=DEMO.market.find(x=>String(x.ID)===String(data.caseId));
+      if(mk) mk.PoolStatus='ปิด';
+      return {success:true};
+    }
+    case 'claimCase': {
+      const mk=DEMO.market.find(x=>String(x.ID)===String(data.caseId));
+      if(!mk||mk.PoolStatus!=='เปิด') return {success:false,error:'เคสถูกรับไปแล้ว'};
+      mk.PoolStatus='ปิด';
+      DEMO.claimedcases.push({caseID:data.caseId,customername:mk.name,contact:mk.contact,report:mk.report,status:mk.status,fromsales:mk.old_sales,sale:data.sales,date:new Date().toLocaleString('th-TH'),newstatus:mk.status,AssignedAt:new Date().toLocaleString('th-TH'),Notes:''});
+      return {success:true};
+    }
+    case 'getClaimedCases': return {success:true,data:data.sales?DEMO.claimedcases.filter(c=>c.sale===data.sales):DEMO.claimedcases};
+    case 'updateClaimed': {
+      const idx=DEMO.claimedcases.findIndex(c=>String(c.caseID)===String(data.caseId));
+      if(idx>=0) Object.assign(DEMO.claimedcases[idx],{newstatus:data.newstatus,Notes:data.Notes});
+      return {success:true};
+    }
+    case 'returnCase': {
+      const idx=DEMO.claimedcases.findIndex(c=>String(c.caseID)===String(data.caseId)&&c.sale===data.sales);
+      if(idx>=0) DEMO.claimedcases.splice(idx,1);
+      const mk=DEMO.market.find(x=>String(x.ID)===String(data.caseId));
+      if(mk){const exp=(mk.ExpiredSales||'').split(',').filter(Boolean);if(!exp.includes(data.sales))exp.push(data.sales);mk.ExpiredSales=exp.join(',');mk.PoolStatus='เปิด';}
+      return {success:true};
+    }
+    case 'getBookings': return {success:true,data:data.sales?DEMO.bookings.filter(b=>b['เซลส์']===data.sales):DEMO.bookings};
+    case 'addBooking': DEMO.bookings.push({'วันที่':new Date().toLocaleString('th-TH'),CaseID:data.caseId,'เซลส์':data.sales,'ลูกค้า':data.customer,Facebook:data.facebook||'',Ads:data.ads||'','รถ':data.brand||'','รุ่น':data.model||'','ทะเบียน':data.plate||'','สถานะ':data.status||'จองแล้ว','หมายเหตุ':data.note||''}); return {success:true};
+    case 'updateBooking': {
+      const idx=DEMO.bookings.findIndex(b=>String(b.CaseID)===String(data.caseId));
+      if(idx>=0) Object.assign(DEMO.bookings[idx],{'สถานะ':data.status,'หมายเหตุ':data.note});
+      return {success:true};
+    }
+    case 'getDashboard': {
+      const d2=new Date(),pre=String(d2.getFullYear()).slice(-2)+String(d2.getMonth()+1).padStart(2,'0');
+      const sales=DEMO.users.filter(u=>u.role==='Sales');
+      if(data.role==='Admin'){
+        return {success:true,data:{sales:sales.map(u=>{const my=DEMO.cases.filter(c=>c.sales===u.name&&String(c.caseid).startsWith(pre));return {name:u.name,avatar:u.avatar,currentCases:my.length,claimedCases:DEMO.claimedcases.filter(c=>c.sale===u.name).length,sold:my.filter(c=>c.status==='ปล่อยแล้ว').length,statuses:{}};}),total:{cases:DEMO.cases.filter(c=>String(c.caseid).startsWith(pre)).length}}};
+      }
+      const my=DEMO.cases.filter(c=>c.sales===data.sales&&String(c.caseid).startsWith(pre));
+      return {success:true,data:{currentCases:my.length,claimedCases:DEMO.claimedcases.filter(c=>c.sale===data.sales).length,sold:my.filter(c=>c.status==='ปล่อยแล้ว').length,statuses:{}}};
+    }
+    case 'getHistory': return {success:true,data:data.caseId?DEMO.history.filter(h=>String(h['รหัสเคส'])===String(data.caseId)):DEMO.history};
+    case 'getNotifications': return {success:true,data:data.sales?DEMO.notifications.filter(n=>n['เซลส์']===data.sales):DEMO.notifications};
+    case 'markNotifRead': {const idx=DEMO.notifications.findIndex(n=>n.notifId===data.notifId);if(idx>=0)DEMO.notifications[idx]['สถานะ']='read';return {success:true};}
+    case 'adminPullCase': case 'adminChangeSales': {const idx=DEMO.cases.findIndex(c=>String(c.caseid)===String(data.caseId));if(idx>=0)DEMO.cases[idx].sales=data.newSales;return {success:true};}
+    default: return {success:true,data:[]};
+  }
+}
+
+// ============================================================
+// CONTEXT
+// ============================================================
+const AppCtx = createContext(null);
+
+// ============================================================
+// ICONS (simple SVG)
+// ============================================================
+const Ico = {
+  home: ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>,
+  market: ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>,
+  dash: ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
+  book: ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>,
+  inbox: ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="22,12 16,12 14,15 10,15 8,12 2,12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>,
+  bell: ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>,
+  plus: ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+  x: ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+  edit: ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>,
+  search: ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  copy: ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>,
+  logout: ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16,17 21,12 16,7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+  history: ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="12,8 12,12 14,14"/><path d="M3.05 11a9 9 0 109.07-7.92"/><polyline points="3,3 3,11 11,11"/></svg>,
+  up: ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="18,15 12,9 6,15"/></svg>,
+  down: ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6,9 12,15 18,9"/></svg>,
+  moon: ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>,
+  user: ()=><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>,
+};
+
+// ============================================================
+// COMPONENTS — Small Reusable
+// ============================================================
+function StatusBadge({status}){
+  return <span className={`badge ${getStatusClass(status)}`}>{status||'-'}</span>;
+}
+
+function Modal({title,onClose,children,footer}){
+  return <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+    <div className="modal">
+      <div className="modal-hd">
+        <span style={{fontWeight:700,fontSize:16}}>{title}</span>
+        <button className="btn btn-ghost" style={{padding:'4px 8px'}} onClick={onClose}><Ico.x/></button>
+      </div>
+      <div className="modal-bd">{children}</div>
+      {footer&&<div className="modal-ft">{footer}</div>}
+    </div>
+  </div>;
+}
+
+function Loading(){return <div className="loading"><span className="spin"/><span>กำลังโหลด...</span></div>;}
+
+// Skeleton card สำหรับ list ที่รอโหลด — ดูไม่กระตุก
+function SkeletonCards({n=3}){
+  return <div>{Array.from({length:n}).map((_,i)=>(
+    <div key={i} className="market-card" style={{marginBottom:12}}>
+      <div style={{display:'flex',justifyContent:'space-between',marginBottom:10}}>
+        <div className="skeleton" style={{width:90,height:18}}/>
+        <div className="skeleton" style={{width:70,height:18,borderRadius:20}}/>
+      </div>
+      <div className="skeleton" style={{width:'60%',height:16,marginBottom:8}}/>
+      <div className="skeleton" style={{width:'40%',height:13,marginBottom:8}}/>
+      <div className="skeleton" style={{width:'100%',height:40}}/>
+    </div>
+  ))}</div>;
+}
+
+// Skeleton สำหรับ table row
+function SkeletonRows({n=5,cols=6}){
+  return <>{Array.from({length:n}).map((_,i)=>(
+    <tr key={i}>{Array.from({length:cols}).map((__,j)=>(
+      <td key={j}><div className="skeleton" style={{height:14,width:j===0?80:j===cols-1?60:'70%'}}/></td>
+    ))}</tr>
+  ))}</>;
+}
+
+
+function Confirm({msg,onOk,onCancel}){
+  return <div className="overlay">
+    <div className="modal" style={{maxWidth:340}}>
+      <div className="modal-bd" style={{textAlign:'center',padding:'28px 20px'}}>
+        <div style={{fontSize:32,marginBottom:12}}>⚠️</div>
+        <p style={{fontSize:15,marginBottom:24}}>{msg}</p>
+        <div style={{display:'flex',gap:8,justifyContent:'center'}}>
+          <button className="btn btn-ghost" onClick={onCancel}>ยกเลิก</button>
+          <button className="btn btn-danger" onClick={onOk}>ยืนยัน</button>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// HISTORY MODAL — Visual Timeline
+// ============================================================
+function HistoryModal({caseId,onClose}){
+  const [rows,setRows]=useState([]);
+  const [loading,setLoading]=useState(true);
+
+  useEffect(()=>{
+    api('getHistory',{caseId}).then(r=>{
+      if(r.success) setRows(r.data||[]);
+      setLoading(false);
+    });
+  },[caseId]);
+
+  // icon + color ตาม action
+  function getActionStyle(action){
+    const a=String(action||'').trim();
+    if(a.includes('เพิ่มเคส'))    return {icon:'✨',bg:'rgba(63,185,80,.15)',  border:'rgba(63,185,80,.4)',  color:'var(--green)'};
+    if(a.includes('แก้ไข'))       return {icon:'✏️',bg:'rgba(88,166,255,.12)', border:'rgba(88,166,255,.35)',color:'var(--blue)'};
+    if(a.includes('ส่งตลาด'))     return {icon:'⬆️',bg:'rgba(210,153,34,.15)', border:'rgba(210,153,34,.4)', color:'var(--yellow)'};
+    if(a.includes('รับเคส'))      return {icon:'🤝',bg:'rgba(188,140,255,.15)',border:'rgba(188,140,255,.4)',color:'var(--purple)'};
+    if(a.includes('คืนเคส'))      return {icon:'↩️',bg:'rgba(255,166,87,.15)', border:'rgba(255,166,87,.4)', color:'var(--orange)'};
+    if(a.includes('ปิดเคส'))      return {icon:'🔒',bg:'rgba(248,81,73,.12)',  border:'rgba(248,81,73,.35)', color:'var(--red)'};
+    if(a.includes('เปลี่ยนเซลส์')) return {icon:'🔄',bg:'rgba(57,211,83,.12)', border:'rgba(57,211,83,.35)', color:'var(--cyan)'};
+    if(a.includes('ดึงเคส'))      return {icon:'📌',bg:'rgba(255,166,87,.15)', border:'rgba(255,166,87,.4)', color:'var(--orange)'};
+    if(a.includes('จอง'))         return {icon:'📋',bg:'rgba(88,166,255,.12)', border:'rgba(88,166,255,.35)',color:'var(--blue)'};
+    return                               {icon:'📝',bg:'rgba(139,148,158,.12)',border:'rgba(139,148,158,.3)',color:'var(--text2)'};
+  }
+
+  function formatDate(d){
+    const s=String(d||'');
+    if(s.includes('T')){
+      const dt=new Date(s);
+      if(!isNaN(dt)){
+        const dd=String(dt.getDate()).padStart(2,'0');
+        const mm=String(dt.getMonth()+1).padStart(2,'0');
+        const yy=String(dt.getFullYear()).slice(-2);
+        const hh=String(dt.getHours()).padStart(2,'0');
+        const min=String(dt.getMinutes()).padStart(2,'0');
+        return [`${dd}/${mm}/${yy}`,`${hh}:${min}`];
+      }
+    }
+    const m=s.match(/(\d+)\/(\d+)\/(\d+)\s+(\d+):(\d+)/);
+    if(m) return [`${m[1]}/${m[2]}/${String(m[3]).slice(-2)}`,`${m[4]}:${m[5]}`];
+    return [s,''];
+  }
+
+  // จัดกลุ่มตามวัน
+  const grouped = rows.reduce((acc,h)=>{
+    const [date]=formatDate(h['วันที่']);
+    if(!acc[date]) acc[date]=[];
+    acc[date].push(h);
+    return acc;
+  },{});
+
+  return <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+    <div className="modal" style={{maxWidth:500,borderRadius:14}}>
+      <div style={{padding:'14px 20px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:10}}>
+        <div style={{width:4,height:22,background:'var(--purple)',borderRadius:2,flexShrink:0}}/>
+        <span style={{fontWeight:700,fontSize:15}}>Timeline เคส {caseId}</span>
+        <button className="btn btn-ghost" style={{padding:'4px 8px',marginLeft:'auto'}} onClick={onClose}><Ico.x/></button>
+      </div>
+
+      <div style={{padding:'16px 20px',maxHeight:'75vh',overflowY:'auto'}}>
+        {loading?<div style={{padding:40,textAlign:'center'}}>
+          <SkeletonCards n={3}/>
+        </div>:rows.length===0?
+        <div style={{textAlign:'center',padding:'40px 0',color:'var(--text2)'}}>
+          <div style={{fontSize:36,marginBottom:8}}>📭</div>
+          <div>ยังไม่มีประวัติ</div>
+        </div>:
+
+        Object.entries(grouped).map(([date,items],gi)=><div key={gi} style={{marginBottom:20}}>
+          {/* วันที่ header */}
+          <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:12}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--text3)',background:'var(--bg3)',border:'1px solid var(--border)',padding:'3px 10px',borderRadius:20,whiteSpace:'nowrap'}}>
+              📅 {date}
+            </div>
+            <div style={{flex:1,height:1,background:'var(--border)'}}/>
+          </div>
+
+          {/* timeline items */}
+          <div style={{position:'relative',paddingLeft:44}}>
+            {/* vertical line */}
+            {items.length>1&&<div style={{position:'absolute',left:17,top:20,bottom:20,width:2,background:'var(--border)',borderRadius:1}}/>}
+
+            {items.map((h,i)=>{
+              const st=getActionStyle(h.action);
+              const [,time]=formatDate(h['วันที่']);
+              return <div key={i} style={{position:'relative',marginBottom:i<items.length-1?16:0}}>
+                {/* dot */}
+                <div style={{
+                  position:'absolute',left:-44,
+                  width:34,height:34,borderRadius:'50%',
+                  background:st.bg,border:`2px solid ${st.border}`,
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  fontSize:14,flexShrink:0,
+                  boxShadow:`0 0 0 3px var(--bg2)`
+                }}>
+                  {st.icon}
+                </div>
+
+                {/* content card */}
+                <div style={{
+                  background:'var(--bg3)',border:`1px solid var(--border)`,
+                  borderLeft:`3px solid ${st.border}`,
+                  borderRadius:8,padding:'10px 14px',
+                  transition:'border-color .15s'
+                }}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8,marginBottom:4}}>
+                    <div style={{fontSize:13,fontWeight:700,color:st.color}}>{h.action}</div>
+                    <div style={{fontSize:11,color:'var(--text3)',whiteSpace:'nowrap',flexShrink:0}}>{time}</div>
+                  </div>
+                  {h.detail&&<div style={{fontSize:12,color:'var(--text2)',marginBottom:4,lineHeight:1.5}}>{h.detail}</div>}
+                  <div style={{fontSize:11,color:'var(--text3)',display:'flex',alignItems:'center',gap:4}}>
+                    <span style={{background:'rgba(88,166,255,.1)',color:'var(--blue)',padding:'1px 7px',borderRadius:20,fontWeight:600}}>
+                      {h['เซลส์']||'ระบบ'}
+                    </span>
+                  </div>
+                </div>
+              </div>;
+            })}
+          </div>
+        </div>)}
+      </div>
+    </div>
+  </div>;
+}
+
+
+// ============================================================
+// CASE MODAL — redesigned (Admin + Sales shared)
+// ============================================================
+function CaseModal({caseData,users,currentUser,onClose,onUpdated}){
+  const [status,setStatus]=useState(caseData.status||caseData.newstatus||'รอข้อมูล');
+  const [report,setReport]=useState(caseData.report||'');
+  const [editReport,setEditReport]=useState(false);
+  const [loading,setLoading]=useState(false);
+  const [showHistory,setShowHistory]=useState(false);
+  const [newSales,setNewSales]=useState(caseData.sales||caseData.sale||'');
+  const [notes,setNotes]=useState([]);
+  const [addingNote,setAddingNote]=useState(false);
+  const [newNote,setNewNote]=useState('');
+  const [confirmDel,setConfirmDel]=useState(false);
+  const isAdmin=currentUser.role==='Admin';
+  const isClaimed=!!caseData.fromsales;
+  const caseId=caseData.caseid||caseData.caseID;
+  const contactRaw=caseData.contact||'';
+  const contactVal=formatContact(contactRaw);
+  const isQR=contactRaw.startsWith('http')||contactRaw.startsWith('data:image');
+
+  // โหลด notes จาก localStorage (เก็บต่อเคส)
+  useEffect(()=>{
+    try{const d=JSON.parse(localStorage.getItem('cnotes_'+caseId)||'[]');setNotes(Array.isArray(d)?d:[]);}
+    catch(e){setNotes([]);}
+  },[caseId]);
+
+  function saveNote(){
+    if(!newNote.trim())return;
+    const upd=[...notes,{text:newNote.trim(),date:new Date().toLocaleString('th-TH'),by:currentUser.name}];
+    setNotes(upd);
+    try{localStorage.setItem('cnotes_'+caseId,JSON.stringify(upd));}catch(e){}
+    setNewNote('');setAddingNote(false);
+  }
+
+  function deleteNote(i){
+    const upd=notes.filter((_,idx)=>idx!==i);
+    setNotes(upd);
+    try{localStorage.setItem('cnotes_'+caseId,JSON.stringify(upd));}catch(e){}
+  }
+
+  async function save(){
+    // Optimistic: ปิด modal ทันที ไม่รอ API
+    const optimisticData = isClaimed
+      ? {...caseData, newstatus:status}
+      : {...caseData, status, report: editReport?report:caseData.report, sales: (isAdmin&&newSales)?newSales:caseData.sales};
+    onUpdated(optimisticData); // ส่ง optimistic data ให้ parent update list ทันที
+    onClose();
+    // sync API ข้างหลัง (silent)
+    try{
+      if(isClaimed){
+        await api('updateClaimed',{caseId,newstatus:status,Notes:'',sales:currentUser.name});
+      } else {
+        const upd={caseid:caseId,status,changedBy:currentUser.name,detail:'เปลี่ยนสถานะเป็น '+status};
+        if(editReport) upd.report=report;
+        await api('updateCase',upd);
+        if(isAdmin&&newSales&&newSales!==caseData.sales){
+          await api('adminChangeSales',{caseId,newSales});
+        }
+      }
+    }catch(e){/* silent */}
+  }
+
+  async function saveReport(){
+    if(!report.trim())return;
+    setEditReport(false);
+    onUpdated({...caseData, report}); // optimistic
+    onClose();
+    try{await api('updateCase',{caseid:caseId,report,changedBy:currentUser.name,detail:'แก้ไขรีพอร์ต'});}catch(e){}
+  }
+
+  async function doDelete(){
+    onUpdated(); onClose(); // optimistic: ปิดทันที
+    try{await api('sendToMarket',{caseId,sales:caseData.sales||currentUser.name});}catch(e){}
+  }
+
+  if(showHistory) return <HistoryModal caseId={caseId} onClose={()=>setShowHistory(false)}/>;
+
+  return <>
+    {confirmDel&&<Confirm msg={'ส่งเคส '+caseId+' ขึ้นตลาด / ลบออกจากรายการ?'} onOk={()=>{setConfirmDel(false);doDelete();}} onCancel={()=>setConfirmDel(false)}/>}
+    <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div className="modal" style={{maxWidth:480,borderRadius:14}}>
+
+        {/* Header */}
+        <div style={{padding:'14px 20px',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',gap:10}}>
+          <div style={{width:4,height:22,background:'var(--blue)',borderRadius:2,flexShrink:0}}/>
+          <span style={{fontWeight:700,fontSize:15}}>ข้อมูลลูกค้า</span>
+          <button className="btn btn-ghost" style={{padding:'4px 8px',marginLeft:'auto'}} onClick={onClose}><Ico.x/></button>
+        </div>
+
+        {/* Body */}
+        <div style={{padding:'16px 20px',overflowY:'auto',maxHeight:'calc(90vh - 190px)'}}>
+
+          {/* Static info */}
+          <div style={{marginBottom:14,display:'grid',gap:9}}>
+            <div style={{fontSize:14}}><span style={{color:'var(--text2)'}}>รหัสเคส: </span><span style={{fontWeight:700,color:'var(--blue)'}}>{caseId}</span></div>
+            <div style={{fontSize:14}}><span style={{color:'var(--text2)'}}>ชื่อลูกค้า: </span><span style={{fontWeight:600}}>{caseData.customername||caseData.name||'-'}</span></div>
+            <div style={{fontSize:14,display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+              <span style={{color:'var(--text2)'}}>ติดต่อ: </span>
+              {isQR
+                ? <div style={{marginTop:6,width:'100%'}}>
+                    <img src={contactRaw} alt="QR Code" style={{maxWidth:'100%',maxHeight:220,borderRadius:8,border:'1px solid var(--border)',background:'var(--bg3)',display:'block'}}
+                      onError={e=>{e.target.style.display='none';e.target.nextSibling.style.display='block';}}
+                    />
+                    <div style={{display:'none',background:'var(--bg3)',padding:10,borderRadius:8,textAlign:'center',color:'var(--text2)',fontSize:12}}>⚠️ โหลดรูปไม่ได้</div>
+                  </div>
+                : <>
+                    <span style={{fontWeight:600}}>{contactVal||'-'}</span>
+                    {contactVal&&<button className="btn btn-primary" style={{padding:'3px 14px',fontSize:12,borderRadius:20}} onClick={()=>{try{navigator.clipboard.writeText(contactVal);}catch(e){}}}>Copy</button>}
+                  </>
+              }
+            </div>
+          </div>
+
+          {/* Status */}
+          <div className="form-group">
+            <label>สถานะ:</label>
+            <select value={status} onChange={e=>setStatus(e.target.value)}>
+              {STATUSES.map(s=><option key={s}>{s}</option>)}
+            </select>
+          </div>
+
+          {/* Sales */}
+          <div className="form-group">
+            <label>เซลส์:</label>
+            {isAdmin&&!isClaimed
+              ? <select value={newSales} onChange={e=>setNewSales(e.target.value)}>
+                  <option value="">-- เลือกเซลส์ --</option>
+                  {(users||[]).filter(u=>u.role==='Sales').map(u=><option key={u.userId} value={u.name}>{u.name}</option>)}
+                </select>
+              : <div style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:6,padding:'8px 12px',fontSize:14}}>{caseData.sales||caseData.sale||currentUser.name}</div>
+            }
+          </div>
+
+          {/* Report */}
+          <div className="form-group">
+            <label>รีพอร์ต:</label>
+            {editReport
+              ? <textarea rows={4} value={report} onChange={e=>setReport(e.target.value)} style={{color:'var(--text)'}}/>
+              : <div style={{background:'var(--bg3)',padding:'8px 12px',borderRadius:6,fontSize:13,minHeight:56,whiteSpace:'pre-wrap',color:'var(--text2)',lineHeight:1.6}}>{report||'ไม่มีรีพอร์ต'}</div>
+            }
+          </div>
+
+          {/* Notes */}
+          <div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+              <span style={{fontSize:14,fontWeight:600}}>📝 Notes</span>
+              <button className="btn btn-ghost" style={{fontSize:12,padding:'3px 12px',borderRadius:20,border:'1px dashed var(--border)'}} onClick={()=>setAddingNote(!addingNote)}>
+                + เพิ่ม Note
+              </button>
+            </div>
+            {addingNote&&<div style={{marginBottom:10}}>
+              <textarea rows={2} value={newNote} onChange={e=>setNewNote(e.target.value)} placeholder="เขียน note ที่นี่..." style={{marginBottom:6}}/>
+              <div style={{display:'flex',gap:6}}>
+                <button className="btn btn-primary" style={{fontSize:12,padding:'5px 14px'}} onClick={saveNote}>บันทึก</button>
+                <button className="btn btn-ghost" style={{fontSize:12,padding:'5px 14px'}} onClick={()=>{setAddingNote(false);setNewNote('');}}>ยกเลิก</button>
+              </div>
+            </div>}
+            {notes.length===0&&!addingNote
+              ? <div style={{textAlign:'center',color:'var(--text3)',fontSize:12,padding:'8px 0'}}>ยังไม่มี notes</div>
+              : <div style={{maxHeight:150,overflowY:'auto'}}>
+                  {notes.map((n,i)=><div key={i} style={{background:'var(--bg3)',borderRadius:6,padding:'8px 10px',marginBottom:6,fontSize:13,display:'flex',gap:8,alignItems:'flex-start'}}>
+                    <div style={{flex:1}}>
+                      <div style={{color:'var(--text)'}}>{n.text}</div>
+                      <div style={{fontSize:11,color:'var(--text3)',marginTop:3}}>โดย {n.by} · {n.date}</div>
+                    </div>
+                    <button onClick={()=>deleteNote(i)} style={{background:'none',border:'none',color:'var(--text3)',cursor:'pointer',fontSize:14,padding:'0 2px',flexShrink:0}}>✕</button>
+                  </div>)}
+                </div>
+            }
+          </div>
+
+          {/* 📎 รูปภาพแนบ */}
+          <div style={{marginTop:14}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+              <span style={{fontSize:14,fontWeight:600}}>📎 รูปภาพแนบ</span>
+              <span style={{fontSize:11,color:'var(--text3)'}}>อัปโหลดไป Google Drive</span>
+            </div>
+            <ImageUploader
+              value={caseData.attachment||''}
+              onChange={async(url)=>{
+                if(url&&API_URL){
+                  // บันทึก URL ลง Sheet ใน field attachment
+                  await api('updateCase',{caseid:caseId,attachment:url,changedBy:currentUser.name,detail:'เพิ่มรูปภาพแนบ'});
+                }
+              }}
+              caseId={caseId}
+              label="🖼️"
+              maxMB={10}
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{padding:'10px 16px',borderTop:'1px solid var(--border)'}}>
+          <div style={{display:'flex',gap:8,marginBottom:8,flexWrap:'wrap'}}>
+            {!isClaimed&&<button className="btn btn-primary" style={{flex:1,fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',gap:5}} onClick={editReport?saveReport:()=>setEditReport(true)}>
+              ✏️ {editReport?'บันทึกรีพอร์ต':'แก้ไขรีพอร์ต'}
+            </button>}
+            <button className="btn btn-ghost" style={{flex:1,fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',gap:5}} onClick={()=>setShowHistory(true)}>
+              <Ico.history/> ประวัติ
+            </button>
+            {!isClaimed&&<button className="btn btn-ghost" style={{flex:1,fontSize:13,display:'flex',alignItems:'center',justifyContent:'center',gap:5}} onClick={()=>setConfirmDel(true)}>
+              🗑 ลบ
+            </button>}
+          </div>
+          <button style={{width:'100%',background:'#e53935',color:'#fff',border:'none',borderRadius:8,padding:'11px',fontSize:14,fontWeight:700,cursor:'pointer',transition:'opacity .15s'}} onClick={save}>
+            บันทึก &amp; ปิด
+          </button>
+        </div>
+      </div>
+    </div>
+  </>;
+}
+
+// ============================================================
+// IMAGE UPLOADER (ใช้ได้ทั้ง QR และแนบรูปทั่วไป)
+// ============================================================
+function ImageUploader({value, onChange, caseId='', label='📷', accept='image/*', maxMB=10}){
+  const [status,setStatus]=useState(''); // ''|'compressing'|'uploading'|'done'|'cloud'|'error'
+  const [preview,setPreview]=useState(()=>value||'');
+  const fileRef=useRef();
+
+  const prevRef=useRef(value);
+  useEffect(()=>{
+    if(!value && prevRef.current){ setPreview(''); setStatus(''); }
+    prevRef.current=value;
+  },[value]);
+
+  function compressImage(file){
+    return new Promise(resolve=>{
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        const img=new Image();
+        img.onload=()=>{
+          const MAX=800;
+          let w=img.width,h=img.height;
+          if(w>MAX||h>MAX){const r=Math.min(MAX/w,MAX/h);w=Math.round(w*r);h=Math.round(h*r);}
+          const canvas=document.createElement('canvas');
+          canvas.width=w;canvas.height=h;
+          canvas.getContext('2d').drawImage(img,0,0,w,h);
+          resolve(canvas.toDataURL('image/jpeg',0.80));
+        };
+        img.onerror=()=>resolve(ev.target.result);
+        img.src=ev.target.result;
+      };
+      reader.onerror=()=>resolve('');
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleFile(e){
+    const file=e.target.files[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')) return alert('กรุณาเลือกไฟล์รูปภาพ');
+    if(file.size>maxMB*1024*1024) return alert(`ไฟล์ต้องไม่เกิน ${maxMB}MB`);
+
+    setStatus('compressing');
+    const compressed=await compressImage(file);
+    if(!compressed){setStatus('error');return;}
+
+    // แสดงรูปทันที (base64)
+    setPreview(compressed);
+    onChange(compressed);
+    setStatus('done');
+
+    // Upload Drive ข้างหลัง
+    if(API_URL){
+      setStatus('uploading');
+      try{
+        const r=await api('uploadImage',{
+          base64:compressed,
+          mimeType:'image/jpeg',
+          filename:(file.name||'img_'+Date.now()+'.jpg'),
+          caseId:caseId||'',
+          type:'attachment'
+        });
+        if(r?.success&&r.url){
+          onChange(r.url);
+          setPreview(r.thumbUrl||r.url);
+          setStatus('cloud');
+        } else { setStatus('done'); }
+      }catch(e){ setStatus('done'); }
+    }
+  }
+
+  function handlePaste(e){
+    const items=e.clipboardData?.items||[];
+    for(const item of items){
+      if(item.type.startsWith('image/')){
+        handleFile({target:{files:[item.getAsFile()]}});
+      }
+    }
+  }
+
+  function clear(e){
+    e.stopPropagation();e.preventDefault();
+    setPreview('');onChange('');setStatus('');
+    if(fileRef.current) fileRef.current.value='';
+  }
+
+  const statusBadge={
+    compressing:<span style={badgeStyle('#1f6feb')}>⚙️ กำลังบีบอัด...</span>,
+    uploading:  <span style={badgeStyle('#1f6feb')}><span className="spin" style={{width:10,height:10,borderWidth:2,display:'inline-block',marginRight:4}}/> อัปโหลด Drive...</span>,
+    done:       <span style={badgeStyle('#238636')}>✅ บันทึกแล้ว</span>,
+    cloud:      <span style={badgeStyle('#1f6feb')}>☁️ Drive</span>,
+    error:      <span style={badgeStyle('#da3633')}>❌ ผิดพลาด</span>,
+  };
+  function badgeStyle(bg){return {position:'absolute',bottom:6,left:6,background:bg+'cc',color:'#fff',fontSize:10,padding:'2px 7px',borderRadius:20,pointerEvents:'none'};}
+
+  return <div onPaste={handlePaste}>
+    <input ref={fileRef} type="file" accept={accept} style={{display:'none'}} onChange={handleFile}/>
+    {preview
+      ? <div style={{position:'relative',display:'inline-block',width:'100%'}}>
+          <img src={preview} alt="รูปภาพ"
+            style={{width:'100%',maxHeight:220,objectFit:'contain',borderRadius:8,
+              border:'1px solid var(--border)',background:'var(--bg3)',display:'block'}}
+            onError={e=>{e.target.style.opacity='0.3';}}
+          />
+          {statusBadge[status]}
+          <button type="button" onClick={clear}
+            style={{position:'absolute',top:6,right:6,background:'rgba(0,0,0,.65)',border:'none',
+              borderRadius:'50%',width:26,height:26,color:'#fff',cursor:'pointer',fontSize:15,
+              display:'flex',alignItems:'center',justifyContent:'center',lineHeight:1}}>✕</button>
+          <button type="button" onClick={()=>fileRef.current?.click()}
+            style={{position:'absolute',top:6,right:38,background:'rgba(0,0,0,.65)',border:'none',
+              borderRadius:20,color:'#fff',cursor:'pointer',fontSize:11,padding:'4px 8px'}}>เปลี่ยน</button>
+        </div>
+      : <div style={{display:'flex',gap:8,flexDirection:'column'}}>
+          <button type="button" className="btn btn-ghost"
+            style={{width:'100%',padding:'14px',display:'flex',flexDirection:'column',
+              alignItems:'center',gap:6,border:'2px dashed var(--border)',borderRadius:8}}
+            onClick={()=>fileRef.current?.click()}>
+            <span style={{fontSize:28}}>{label}</span>
+            <span style={{fontSize:13}}>แตะเพื่อเลือกรูป / ถ่ายรูป</span>
+            <span style={{fontSize:11,color:'var(--text3)'}}>JPG, PNG สูงสุด {maxMB}MB · หรือวางรูปได้เลย</span>
+          </button>
+          <input value={value||''} onChange={e=>onChange(e.target.value)}
+            placeholder="หรือวาง URL รูปภาพ" style={{fontSize:13}}/>
+        </div>
+    }
+  </div>;
+}
+
+// alias ใช้แทน QrUploader เดิม
+function QrUploader({value,onChange,caseId=''}){
+  return <ImageUploader value={value} onChange={onChange} caseId={caseId} label="📷" maxMB={10}/>;
+}
+// ============================================================
+// ADD CASE MODAL
+// ============================================================
+function AddCaseModal({users,currentUser,onClose,onAdded}){
+  const [form,setForm]=useState({customername:'',contact:'',contact_by:'ไลน์',report:'',status:'รอข้อมูล',sales:currentUser.role==='Admin'?'':currentUser.name,sent:'ปกติ'});
+  const [loading,setLoading]=useState(false);
+  const [previewId,setPreviewId]=useState('');
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+
+  useEffect(()=>{
+    // Generate preview case ID
+    const d=new Date();
+    const yy=String(d.getFullYear()).slice(-2);
+    const mm=String(d.getMonth()+1).padStart(2,'0');
+    const pre=yy+mm;
+    api('getCases',{all:'true'}).then(r=>{
+      if(r.success){
+        const max=(r.data||[]).filter(c=>String(c.caseid).startsWith(pre)).reduce((m,c)=>{const n=parseInt(String(c.caseid).slice(4))||0;return n>m?n:m;},0);
+        setPreviewId(pre+String(max+1).padStart(3,'0'));
+      } else {
+        setPreviewId(pre+'???');
+      }
+    });
+  },[]);
+
+  async function submit(){
+    if(!form.customername||!form.sales) return alert('กรุณากรอกชื่อลูกค้าและเลือกเซลส์');
+    setLoading(true);
+    const r=await api('addCase',{...form});
+    setLoading(false);
+    if(r.success){onAdded();onClose();}
+    else alert(r.error||'เกิดข้อผิดพลาด');
+  }
+  return <Modal title="➕ เพิ่มข้อมูลลูกค้า" onClose={onClose} footer={<>
+    <button className="btn btn-ghost" onClick={onClose}>ยกเลิก</button>
+    <button className="btn btn-primary" onClick={submit} disabled={loading}>{loading?'กำลังบันทึก...':'บันทึก'}</button>
+  </>}>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+      <div className="form-group" style={{gridColumn:'1/-1'}}>
+        <label>รหัสเคส (สร้างอัตโนมัติ)</label>
+        <div style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:6,padding:'8px 12px',fontSize:15,fontWeight:700,color:'var(--blue)',letterSpacing:1}}>
+          {previewId||'กำลังสร้าง...'}
+        </div>
+      </div>
+      <div className="form-group" style={{gridColumn:'1/-1'}}><label>ชื่อลูกค้า *</label><input value={form.customername} onChange={e=>set('customername',e.target.value)} placeholder="ชื่อ-นามสกุล"/></div>
+      <div className="form-group"><label>ติดต่อโดย</label><select value={form.contact_by} onChange={e=>set('contact_by',e.target.value)}>{CONTACT_BY.map(c=><option key={c}>{c}</option>)}</select></div>
+      <div className="form-group">
+        <label>ข้อมูลติดต่อ</label>
+        {form.contact_by==='QR Code'?
+          <QrUploader value={form.contact} onChange={v=>set('contact',v)}/>:
+          <input value={form.contact} onChange={e=>set('contact',e.target.value)} placeholder="เบอร์ / ไลน์ / ID"/>
+        }
+      </div>
+      <div className="form-group"><label>สถานะ</label><select value={form.status} onChange={e=>set('status',e.target.value)}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
+      <div className="form-group"><label>ส่ง</label><select value={form.sent} onChange={e=>set('sent',e.target.value)}>{SENT_TYPES.map(s=><option key={s}>{s}</option>)}</select></div>
+      {currentUser.role==='Admin'&&<div className="form-group" style={{gridColumn:'1/-1'}}><label>เซลส์ *</label><select value={form.sales} onChange={e=>set('sales',e.target.value)}><option value="">-- เลือกเซลส์ --</option>{users.filter(u=>u.role==='Sales').map(u=><option key={u.userId} value={u.name}>{u.name}</option>)}</select></div>}
+      <div className="form-group" style={{gridColumn:'1/-1'}}><label>รีพอร์ต</label><textarea rows={4} value={form.report} onChange={e=>set('report',e.target.value)} placeholder="ข้อมูลลูกค้า..."/></div>
+    </div>
+  </Modal>;
+}
+
+// ============================================================
+// ADD BOOKING MODAL
+// ============================================================
+function AddBookingModal({currentUser,users,onClose,onAdded}){
+  const [form,setForm]=useState({caseId:'',sales:currentUser.role==='Admin'?'':currentUser.name,customer:'',facebook:'',ads:'',brand:'',model:'',plate:'',status:'จองแล้ว',note:''});
+  const [loading,setLoading]=useState(false);
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const models=form.brand?CAR_MODELS[form.brand]||[]:[];
+  async function submit(){
+    if(!form.caseId||!form.customer) return alert('กรุณากรอกรหัสเคสและชื่อลูกค้า');
+    setLoading(true);
+    const r=await api('addBooking',{...form});
+    setLoading(false);
+    if(r.success){onAdded();onClose();}else alert(r.error);
+  }
+  return <Modal title="📋 เพิ่มการจอง" onClose={onClose} footer={<>
+    <button className="btn btn-ghost" onClick={onClose}>ยกเลิก</button>
+    <button className="btn btn-primary" onClick={submit} disabled={loading}>{loading?'บันทึก...':'บันทึก'}</button>
+  </>}>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+      <div className="form-group"><label>รหัสเคส *</label><input value={form.caseId} onChange={e=>set('caseId',e.target.value)} placeholder="เช่น 2603001"/></div>
+      {currentUser.role==='Admin'?<div className="form-group"><label>เซลส์</label><select value={form.sales} onChange={e=>set('sales',e.target.value)}><option value="">-- เลือก --</option>{users.filter(u=>u.role==='Sales').map(u=><option key={u.userId} value={u.name}>{u.name}</option>)}</select></div>:<div className="form-group"><label>เซลส์</label><input value={form.sales} readOnly/></div>}
+      <div className="form-group" style={{gridColumn:'1/-1'}}><label>ชื่อลูกค้า *</label><input value={form.customer} onChange={e=>set('customer',e.target.value)}/></div>
+      <div className="form-group"><label>Facebook</label><input value={form.facebook} onChange={e=>set('facebook',e.target.value)}/></div>
+      <div className="form-group"><label>Ads ไหน</label><input value={form.ads} onChange={e=>set('ads',e.target.value)}/></div>
+      <div className="form-group"><label>ยี่ห้อ</label><select value={form.brand} onChange={e=>set('brand',e.target.value)}><option value="">-- เลือก --</option>{Object.keys(CAR_MODELS).map(b=><option key={b}>{b}</option>)}</select></div>
+      <div className="form-group"><label>รุ่น</label><select value={form.model} onChange={e=>set('model',e.target.value)} disabled={!form.brand}><option value="">-- เลือก --</option>{models.map(m=><option key={m}>{m}</option>)}</select></div>
+      <div className="form-group"><label>ทะเบียน</label><input value={form.plate} onChange={e=>set('plate',e.target.value)}/></div>
+      <div className="form-group"><label>สถานะ</label><select value={form.status} onChange={e=>set('status',e.target.value)}>{BOOK_STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
+      <div className="form-group" style={{gridColumn:'1/-1'}}><label>หมายเหตุ</label><textarea rows={2} value={form.note} onChange={e=>set('note',e.target.value)}/></div>
+    </div>
+  </Modal>;
+}
+
+// ============================================================
+// NOTIFICATION PANEL
+// ============================================================
+function NotifPanel({user,onClose,onCountChange}){
+  const [notifs,setNotifs]=useState([]);
+  const [loading,setLoading]=useState(true);
+  useEffect(()=>{api('getNotifications',{sales:user.name}).then(r=>{if(r.success)setNotifs(r.data||[]);setLoading(false);});},[]);
+  async function markRead(id){
+    await api('markNotifRead',{notifId:id});
+    const updated=notifs.map(x=>x.notifId===id?{...x,'สถานะ':'read'}:x);
+    setNotifs(updated);
+    if(onCountChange)onCountChange(updated.filter(n=>n['สถานะ']==='unread').length);
+  }
+  async function markAllRead(){
+    const unread=notifs.filter(n=>n['สถานะ']==='unread');
+    for(const n of unread) await api('markNotifRead',{notifId:n.notifId});
+    setNotifs(prev=>prev.map(x=>({...x,'สถานะ':'read'})));
+    if(onCountChange)onCountChange(0);
+  }
+  return <div style={{position:'fixed',top:56,right:16,width:320,background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,boxShadow:'var(--shadow)',zIndex:200,maxHeight:420,overflowY:'auto'}}>
+    <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+      <span style={{fontWeight:700}}>การแจ้งเตือน</span>
+      <div style={{display:'flex',gap:6}}>
+        <button className="btn btn-ghost" style={{padding:'2px 8px',fontSize:11}} onClick={markAllRead}>อ่านทั้งหมด</button>
+        <button className="btn btn-ghost" style={{padding:'2px 8px'}} onClick={onClose}><Ico.x/></button>
+      </div>
+    </div>
+    {loading?<Loading/>:notifs.length===0?<p style={{padding:20,textAlign:'center',color:'var(--text2)',fontSize:13}}>ไม่มีการแจ้งเตือน</p>:
+    notifs.slice(0,30).map(n=><div key={n.notifId} style={{padding:'10px 16px',borderBottom:'1px solid var(--border)',background:n['สถานะ']==='unread'?'rgba(88,166,255,.06)':'transparent',cursor:'pointer'}} onClick={()=>markRead(n.notifId)}>
+      <div style={{fontSize:13,display:'flex',gap:8,alignItems:'flex-start'}}>
+        {n['สถานะ']==='unread'&&<span style={{width:7,height:7,borderRadius:'50%',background:'var(--blue)',flexShrink:0,marginTop:4}}/>}
+        <span style={{color:n['สถานะ']==='unread'?'var(--text)':'var(--text2)'}}>{n.message}</span>
+      </div>
+      <div style={{fontSize:11,color:'var(--text3)',marginTop:3,paddingLeft:n['สถานะ']==='unread'?15:0}}>{String(n['วันที่']||'')}</div>
+    </div>)}
+  </div>;
+}
+
+// ============================================================
+// ADMIN — CURRENT CASES
+// ============================================================
+function AdminCurrentCases({currentUser,users}){
+  const [cases,setCases]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [filter,setFilter]=useState({sales:'all',status:'',q:''});
+  const [sortDir,setSortDir]=useState('desc'); // desc=ใหม่สุดก่อน, asc=เก่าสุดก่อน
+  const [sel,setSel]=useState(null);
+  const [showAdd,setShowAdd]=useState(false);
+  const [showAddBook,setShowAddBook]=useState(false);
+
+  const load=useCallback(()=>{
+    setLoading(true);
+    api('getCases',{}).then(r=>{if(r.success)setCases(r.data||[]);setLoading(false);});
+  },[]);
+  useEffect(()=>{load();},[load]);
+
+  async function search(){
+    if(!filter.q){load();return;}
+    setLoading(true);
+    const r=await api('searchCases',{q:filter.q});
+    if(r.success)setCases(r.data||[]);
+    setLoading(false);
+  }
+
+  const filtered=cases.filter(c=>{
+    if(filter.sales!=='all'&&c.sales!==filter.sales)return false;
+    if(filter.status&&c.status!==filter.status)return false;
+    return true;
+  }).sort((a,b)=>{
+    const av=String(a.caseid||''), bv=String(b.caseid||'');
+    return sortDir==='desc'?bv.localeCompare(av):av.localeCompare(bv);
+  });
+
+  const salesList=users.filter(u=>u.role==='Sales');
+
+  return <div className="page">
+    <div className="page-hd">
+      <div><div className="page-title">📋 เคสปัจจุบัน</div><div style={{fontSize:12,color:'var(--text2)',marginTop:2}}>เดือนนี้ทั้งหมด {filtered.length} เคส</div></div>
+      <div style={{display:'flex',gap:8}}>
+        <button className="btn btn-ghost" onClick={()=>setShowAddBook(true)}>📋 เพิ่มจอง</button>
+        <button className="btn btn-primary" onClick={()=>setShowAdd(true)}><Ico.plus/> เพิ่มลูกค้า</button>
+      </div>
+    </div>
+    <div className="search-bar" style={{marginBottom:16}}>
+      <div style={{position:'relative',flex:1,maxWidth:280}}>
+        <input value={filter.q} onChange={e=>setFilter(f=>({...f,q:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&search()} placeholder="🔍 ค้นหาชื่อ เบอร์ รหัสเคส"/>
+      </div>
+      <button className="btn btn-ghost" onClick={search}><Ico.search/> ค้นหา</button>
+      <select value={filter.sales} onChange={e=>setFilter(f=>({...f,sales:e.target.value}))} style={{minWidth:100}}>
+        <option value="all">ทุกเซลส์</option>
+        {salesList.map(u=><option key={u.userId} value={u.name}>{u.name}</option>)}
+      </select>
+      <select value={filter.status} onChange={e=>setFilter(f=>({...f,status:e.target.value}))} style={{minWidth:120}}>
+        <option value="">ทุกสถานะ</option>
+        {STATUSES.map(s=><option key={s}>{s}</option>)}
+      </select>
+      <button className="btn btn-ghost" onClick={load}>🔄</button>
+    </div>
+    <div className="card" style={{padding:0}}>
+      <div className="table-wrap">
+        <table>
+          <thead><tr>
+            <th onClick={()=>setSortDir(d=>d==='desc'?'asc':'desc')} style={{cursor:'pointer',userSelect:'none',whiteSpace:'nowrap'}}>
+              รหัสเคส {sortDir==='desc'?'↓':'↑'}
+            </th>
+            <th>ชื่อลูกค้า</th><th>ติดต่อ</th><th>สถานะ</th><th>เซลส์</th><th>อัปเดตล่าสุด</th></tr></thead>
+          <tbody>
+            {loading?<SkeletonRows n={5} cols={6}/> :
+            filtered.length===0?<tr><td colSpan={6} style={{textAlign:'center',padding:30,color:'var(--text2)'}}>ไม่พบเคส</td></tr>:
+            filtered.map((c,i)=><tr key={i} className="clickable" onClick={()=>setSel(c)}>
+              <td><span style={{color:'var(--blue)',fontWeight:700}}>{c.caseid}</span></td>
+              <td style={{fontWeight:500}}>{c.customername}</td>
+              <td style={{fontSize:13,color:'var(--text2)'}}>{displayContact(c.contact)}</td>
+              <td><StatusBadge status={c.status}/></td>
+              <td><span style={{color:'var(--purple)'}}>{c.sales}</span></td>
+              <td style={{fontSize:12,color:'var(--text3)'}}>{String(c.updatedat||'').split(' ')[0]}</td>
+            </tr>)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {sel&&<CaseModal caseData={sel} users={users} currentUser={currentUser} onClose={()=>setSel(null)} onUpdated={load}/>}
+    {showAdd&&<AddCaseModal users={users} currentUser={currentUser} onClose={()=>setShowAdd(false)} onAdded={load}/>}
+    {showAddBook&&<AddBookingModal currentUser={currentUser} users={users} onClose={()=>setShowAddBook(false)} onAdded={()=>{}}/>}
+  </div>;
+}
+
+// ============================================================
+// ADMIN — MARKET (New Card Grid Design)
+// ============================================================
+function AdminMarket({currentUser,users}){
+  const [cases,setCases]=useState([]);
+  const [allCases,setAllCases]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [confirm,setConfirm]=useState(null);
+  const [dashboard,setDashboard]=useState(null);
+  const [filterSales,setFilterSales]=useState('all');
+
+  const load=useCallback(()=>{
+    setLoading(true);
+    Promise.all([
+      api('getMarket',{}),
+      api('getDashboard',{role:'Admin'})
+    ]).then(([mr,dr])=>{
+      if(mr.success){setCases(mr.data||[]);setAllCases(mr.data||[]);}
+      if(dr.success)setDashboard(dr.data);
+      setLoading(false);
+    });
+  },[]);
+  useEffect(()=>{load();},[load]);
+
+  async function closeCase(caseId){
+    await api('closeMarketCase',{caseId,closedBy:currentUser.name});
+    load();
+  }
+
+  const filtered=filterSales==='all'?cases:cases.filter(c=>c.old_sales===filterSales);
+  const salesList=users.filter(u=>u.role==='Sales');
+  const total=allCases.length;
+  const owned=allCases.filter(c=>c.PoolStatus==='ปิด').length;
+
+  function getDateBadge(c){
+    const id=String(c.ID||'');
+    if(id.length>=6){
+      const yy=id.slice(0,2),mm=id.slice(2,4);
+      const year=2000+parseInt(yy);
+      const monthNames=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+      const monthName=monthNames[parseInt(mm)-1]||mm;
+      return `${monthName} ${year}`;
+    }
+    return '';
+  }
+
+  return <div className="mk-page">
+    {/* Hero Header */}
+    <div className="mk-hero">
+      <div className="mk-hero-top">
+        <div>
+          <div style={{fontSize:22,fontWeight:800,display:'flex',alignItems:'center',gap:8}}>🏪 ตลาดเคส <span style={{fontSize:13,fontWeight:400,color:'var(--text2)'}}>Admin View</span></div>
+          <div style={{fontSize:13,color:'var(--text2)',marginTop:4}}>ภาพรวมเคสทั้งหมดในตลาด — สามารถปิดเคสได้</div>
+        </div>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <select value={filterSales} onChange={e=>setFilterSales(e.target.value)} style={{minWidth:120,fontSize:13}}>
+            <option value="all">ทุกเซลส์</option>
+            {salesList.map(u=><option key={u.userId} value={u.name}>{u.name}</option>)}
+          </select>
+          <button className="btn btn-ghost" onClick={load} style={{fontSize:13}}>🔄 รีเฟรช</button>
+        </div>
+      </div>
+      <div className="mk-stats">
+        {[['ว่างอยู่',total-owned,'var(--blue)'],['มีเจ้าของแล้ว',owned,'var(--orange)'],['ทั้งหมด',total,'var(--text)']].map(([l,v,c])=>
+          <div key={l} className="mk-stat"><div className="mk-stat-num" style={{color:c}}>{v}</div><div className="mk-stat-lbl">{l}</div></div>
+        )}
+      </div>
+    </div>
+
+    <div className="mk-body">
+      {/* Cards Area */}
+      <div className="mk-cards-area">
+        {loading?<SkeletonCards n={6}/>:filtered.length===0?
+        <div style={{textAlign:'center',padding:60,color:'var(--text2)'}}>
+          <div style={{fontSize:40,marginBottom:12}}>📭</div>
+          <div>ไม่มีเคสในตลาด</div>
+        </div>:
+        <>
+          <div style={{fontSize:13,color:'var(--text2)',marginBottom:12}}>แสดง {filtered.length} จาก {total} เคส</div>
+          <div className="mk-cards-grid">
+            {filtered.map((c,i)=><div key={i} className="mkc">
+              <div className="mkc-top">
+                <span className="mkc-id">{c.ID}</span>
+                <span className="mkc-date">📅 {getDateBadge(c)}</span>
+              </div>
+              <div className="mkc-name">{c.name}</div>
+              <div className="mkc-badges">
+                <StatusBadge status={c.status}/>
+                <span className="badge" style={{background:'rgba(255,166,87,.1)',color:'var(--orange)',border:'1px solid rgba(255,166,87,.3)'}}>เคสจาก {c.old_sales||'-'}</span>
+              </div>
+              <div className="mkc-contact">📞 <span>{c.contact||'-'}</span>
+                {c.contact&&<button className="btn-ghost" style={{border:'none',background:'none',color:'var(--blue)',cursor:'pointer',fontSize:11}} onClick={()=>navigator.clipboard&&navigator.clipboard.writeText(c.contact)}>คัดลอก</button>}
+              </div>
+              {c.report&&<div className="mkc-report">{String(c.report).slice(0,120)}{c.report.length>120?'...':''}</div>}
+              <button className="btn btn-danger" style={{width:'100%',padding:'9px',fontSize:13}} onClick={()=>setConfirm(c.ID)}>🗑 ปิดเคส</button>
+            </div>)}
+          </div>
+        </>}
+      </div>
+
+      {/* Sidebar */}
+      <div className="mk-sidebar">
+        <div className="mk-sb-section">
+          <div className="mk-sb-title">🏆 เคสในตลาดแต่ละเซลส์</div>
+          {salesList.map((u,i)=>{
+            const cnt=allCases.filter(c=>c.old_sales===u.name).length;
+            return <div key={i} className="lb-row">
+              <div className="lb-rank" style={{background:i===0?'#3d2a00':i===1?'#1c1c2e':i===2?'#1a2a00':'var(--bg3)',color:i===0?'#ffd700':i===1?'#c0c0c0':i===2?'#cd7f32':'var(--text2)'}}>
+                {i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:600,fontSize:13}}>{u.name}</div>
+              </div>
+              <span style={{fontWeight:700,color:'var(--blue)'}}>{cnt}</span>
+            </div>;
+          })}
+        </div>
+        {dashboard&&<div className="mk-sb-section">
+          <div className="mk-sb-title">📊 สรุปเดือนนี้</div>
+          <div className="sb-stat-row"><span style={{fontSize:13}}>เคสทั้งหมด</span><span style={{fontWeight:700,color:'var(--blue)'}}>{dashboard.total?.cases||0}</span></div>
+          <div className="sb-stat-row"><span style={{fontSize:13}}>เคสในตลาด</span><span style={{fontWeight:700,color:'var(--orange)'}}>{total}</span></div>
+        </div>}
+      </div>
+    </div>
+
+    {confirm&&<Confirm msg={`ปิดเคส ${confirm} ออกจากตลาด?`} onOk={()=>{closeCase(confirm);setConfirm(null);}} onCancel={()=>setConfirm(null)}/>}
+  </div>;
+}
+
+// ============================================================
+// EXPORT UTILITIES
+// ============================================================
+function csvEscape(v){
+  const s=String(v==null?'':v).replace(/"/g,'""');
+  return /[,"\n\r]/.test(s)?`"${s}"`:s;
+}
+function downloadCSV(rows, filename){
+  const bom='\uFEFF'; // UTF-8 BOM สำหรับ Excel ภาษาไทย
+  const csv=bom+rows.map(r=>r.map(csvEscape).join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function ExportModal({allCases,salesList,onClose}){
+  const [type,setType]=useState('cases_month');   // ประเภทรายงาน
+  const [salesFilter,setSalesFilter]=useState('all');
+  const [statusFilter,setStatusFilter]=useState('all');
+  const [exporting,setExporting]=useState(false);
+  const [done,setDone]=useState(false);
+
+  const now=new Date();
+  const pre=String(now.getFullYear()).slice(-2)+String(now.getMonth()+1).padStart(2,'0');
+  const monthLabel=`${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+
+  function doExport(){
+    setExporting(true);
+    setTimeout(()=>{
+      try{
+        let cases=[...allCases];
+
+        // กรอง
+        if(type==='cases_month') cases=cases.filter(c=>String(c.caseid).startsWith(pre));
+        if(type==='cases_all')   {} // ทั้งหมด
+        if(salesFilter!=='all')  cases=cases.filter(c=>c.sales===salesFilter);
+        if(statusFilter!=='all') cases=cases.filter(c=>c.status===statusFilter);
+
+        if(type==='summary_sales'){
+          // รายงานสรุปต่อเซลส์
+          const rows=[['เซลส์','เคสปัจจุบัน','รับตลาด','ปล่อยแล้ว']];
+          salesList.forEach(s=>rows.push([s.name,s.currentCases||0,s.claimedCases||0,s.sold||0]));
+          downloadCSV(rows,`สรุปรายเซลส์_${monthLabel.replace('/','_')}.csv`);
+        } else if(type==='summary_status'){
+          // รายงานสรุปสถานะ
+          const map={};
+          cases.forEach(c=>{map[c.status]=(map[c.status]||0)+1;});
+          const rows=[['สถานะ','จำนวน','%']];
+          const total=cases.length||1;
+          Object.entries(map).sort((a,b)=>b[1]-a[1]).forEach(([st,cnt])=>{
+            rows.push([st,cnt,`${Math.round(cnt/total*100)}%`]);
+          });
+          rows.push(['รวม',cases.length,'100%']);
+          downloadCSV(rows,`สรุปสถานะ_${monthLabel.replace('/','_')}.csv`);
+        } else {
+          // รายงานเคสทั้งหมด
+          const headers=['รหัสเคส','ชื่อลูกค้า','ติดต่อ','สถานะ','เซลส์','รีพอร์ต','วันที่สร้าง','อัปเดตล่าสุด'];
+          const rows=[headers,...cases.map(c=>[
+            c.caseid||'',
+            c.customername||'',
+            (c.contact||'').startsWith('data:')?'[QR Image]':formatContact(c.contact)||'',
+            c.status||'',
+            c.sales||'',
+            c.report||'',
+            c.createdat||'',
+            c.updatedat||''
+          ])];
+          const label=type==='cases_month'?`เดือน${monthLabel}`:'ทั้งหมด';
+          downloadCSV(rows,`รายงานเคส_${label.replace('/','_')}.csv`);
+        }
+        setDone(true);
+      }catch(e){ alert('เกิดข้อผิดพลาด: '+e); }
+      setExporting(false);
+    },300);
+  }
+
+  const TYPES=[
+    {k:'cases_month', l:'📋 เคสเดือนนี้',       desc:'เคสทั้งหมดของเดือน'+monthLabel},
+    {k:'cases_all',   l:'📦 เคสทั้งหมด',         desc:'ทุกเคสในระบบ (อาจช้าถ้ามีเยอะ)'},
+    {k:'summary_sales',l:'👤 สรุปรายเซลส์',      desc:'จำนวนเคส / ปล่อยแล้ว ต่อ Sales'},
+    {k:'summary_status',l:'🏷 สรุปสถานะ',         desc:'จำนวนเคสแต่ละสถานะ'},
+  ];
+
+  return <div className="overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+    <div className="modal" style={{maxWidth:440}}>
+      <div className="modal-hd">
+        <span style={{fontWeight:700,fontSize:15}}>📥 Export รายงาน</span>
+        <button className="btn btn-ghost" style={{padding:'4px 8px'}} onClick={onClose}><Ico.x/></button>
+      </div>
+      <div className="modal-bd">
+        {done?
+          <div style={{textAlign:'center',padding:'20px 0'}}>
+            <div style={{fontSize:48,marginBottom:12}}>✅</div>
+            <div style={{fontWeight:700,fontSize:15,marginBottom:6}}>ดาวน์โหลดสำเร็จ!</div>
+            <div style={{fontSize:13,color:'var(--text2)',marginBottom:20}}>ไฟล์ CSV รองรับภาษาไทย เปิดด้วย Excel ได้เลย</div>
+            <div style={{display:'flex',gap:8,justifyContent:'center'}}>
+              <button className="btn btn-ghost" onClick={()=>setDone(false)}>Export อีกครั้ง</button>
+              <button className="btn btn-primary" onClick={onClose}>ปิด</button>
+            </div>
+          </div>:
+          <>
+            {/* เลือกประเภท */}
+            <div className="form-group">
+              <label>ประเภทรายงาน</label>
+              <div style={{display:'grid',gap:8}}>
+                {TYPES.map(t=><div key={t.k}
+                  onClick={()=>setType(t.k)}
+                  style={{padding:'10px 14px',borderRadius:8,border:`2px solid ${type===t.k?'var(--blue)':'var(--border)'}`,
+                    background:type===t.k?'rgba(88,166,255,.08)':'var(--bg3)',cursor:'pointer',transition:'all .15s'}}>
+                  <div style={{fontWeight:600,fontSize:13}}>{t.l}</div>
+                  <div style={{fontSize:11,color:'var(--text2)',marginTop:2}}>{t.desc}</div>
+                </div>)}
+              </div>
+            </div>
+
+            {/* filter เพิ่มเติม (เฉพาะ cases) */}
+            {(type==='cases_month'||type==='cases_all')&&<>
+              <div className="form-group">
+                <label>กรองเซลส์</label>
+                <select value={salesFilter} onChange={e=>setSalesFilter(e.target.value)}>
+                  <option value="all">ทุกเซลส์</option>
+                  {salesList.map(s=><option key={s.name} value={s.name}>{s.name}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>กรองสถานะ</label>
+                <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}>
+                  <option value="all">ทุกสถานะ</option>
+                  {STATUSES.map(s=><option key={s}>{s}</option>)}
+                </select>
+              </div>
+              <div style={{fontSize:12,color:'var(--text2)',background:'var(--bg3)',padding:'8px 12px',borderRadius:6,marginBottom:4}}>
+                📊 พบ <strong style={{color:'var(--blue)'}}>
+                  {allCases.filter(c=>{
+                    if(type==='cases_month'&&!String(c.caseid).startsWith(pre)) return false;
+                    if(salesFilter!=='all'&&c.sales!==salesFilter) return false;
+                    if(statusFilter!=='all'&&c.status!==statusFilter) return false;
+                    return true;
+                  }).length}
+                </strong> เคส ที่จะ export
+              </div>
+            </>}
+          </>
+        }
+      </div>
+      {!done&&<div className="modal-ft">
+        <button className="btn btn-ghost" onClick={onClose}>ยกเลิก</button>
+        <button className="btn btn-green" onClick={doExport} disabled={exporting}
+          style={{display:'flex',alignItems:'center',gap:6}}>
+          {exporting?<><span className="spin" style={{width:14,height:14,marginRight:0}}/> กำลัง Export...</>:'⬇️ ดาวน์โหลด CSV'}
+        </button>
+      </div>}
+    </div>
+  </div>;
+}
+
+
+function useChartJs(cb, deps){
+  useEffect(()=>{
+    if(window.Chart){ cb(); return; }
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js';
+    s.onload=()=>cb();
+    document.head.appendChild(s);
+  }, deps);
+}
+
+function BarChart({id,labels,datasets,horizontal=false}){
+  const ref=useRef(); const inst=useRef();
+  useChartJs(()=>{
+    inst.current?.destroy();
+    if(!ref.current) return;
+    Chart.defaults.color='#8b949e';
+    inst.current=new Chart(ref.current,{
+      type:'bar',
+      data:{labels,datasets:datasets.map(d=>({...d,borderRadius:5,borderSkipped:false}))},
+      options:{
+        indexAxis:horizontal?'y':'x',
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom',labels:{boxWidth:12,padding:16,font:{size:12}}},tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+c.raw}}},
+        scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{font:{size:12}}},y:{grid:{color:'rgba(255,255,255,.05)'},ticks:{font:{size:12},stepSize:1,precision:0}}}
+      }
+    });
+  },[labels,datasets]);
+  useEffect(()=>()=>inst.current?.destroy(),[]);
+  return <canvas ref={ref}/>;
+}
+
+function DonutChart({id,labels,values,colors}){
+  const ref=useRef(); const inst=useRef();
+  useChartJs(()=>{
+    inst.current?.destroy();
+    if(!ref.current) return;
+    inst.current=new Chart(ref.current,{
+      type:'doughnut',
+      data:{labels,datasets:[{data:values,backgroundColor:colors,borderWidth:2,borderColor:'var(--bg2)',hoverOffset:6}]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        cutout:'65%',
+        plugins:{legend:{position:'right',labels:{boxWidth:12,padding:10,font:{size:11}}},tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw} (${Math.round(c.raw/(c.dataset.data.reduce((a,b)=>a+b,0)||1)*100)}%)`}}}
+      }
+    });
+  },[labels,values]);
+  useEffect(()=>()=>inst.current?.destroy(),[]);
+  return <canvas ref={ref}/>;
+}
+
+function AdminDashboard({currentUser}){
+  const [data,setData]=useState(null);
+  const [allCases,setAllCases]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [tab,setTab]=useState('overview');
+  const [showExport,setShowExport]=useState(false);
+
+  const load=useCallback(()=>{
+    cacheClear(['getDashboard','getCases']);
+    Promise.all([
+      api('getDashboard',{role:'Admin'}),
+      api('getCases',{all:'true'})
+    ]).then(([dr,cr])=>{
+      if(dr.success) setData(dr.data);
+      if(cr.success) setAllCases(cr.data||[]);
+      setLoading(false);
+    });
+  },[]);
+  useEffect(()=>{load();},[load]);
+
+  if(loading) return <div className="page"><Loading/></div>;
+  if(!data)   return <div className="page"><p>ไม่พบข้อมูล</p></div>;
+
+  const salesList = data.sales||[];
+  const totalCases = data.total?.cases||0;
+  const totalSold  = salesList.reduce((s,x)=>s+(x.sold||0),0);
+  const totalClaimed=salesList.reduce((s,x)=>s+(x.claimedCases||0),0);
+
+  // สถานะรวมจากทุก sales
+  const statusMap={};
+  salesList.forEach(s=>{ Object.entries(s.statuses||{}).forEach(([k,v])=>{ statusMap[k]=(statusMap[k]||0)+v; }); });
+  const statusEntries=Object.entries(statusMap).sort((a,b)=>b[1]-a[1]);
+
+  // สี palette
+  const PALETTE=['#58a6ff','#bc8cff','#3fb950','#ffa657','#f85149','#d29922','#39d353','#79c0ff','#ffd700','#ff7b72','#a5d6ff','#56d364'];
+  const STATUS_COLORS={'รอข้อมูล':'#6e7681','ไปต่อได้':'#3fb950','เคสเลี้ยง':'#ffa657','เคสวัด 50/50':'#d29922','ติดต่อไม่ได้':'#f85149','ยังไม่สะดวก':'#bc8cff','จอง':'#58a6ff','รอเซ็นต์':'#39d353','รอผล':'#79c0ff','อนุมัติ':'#56d364','ปิดเคส':'#ff6b6b','รีเจค':'#da3633','ปล่อยแล้ว':'#3fb950','ได้รถจากที่อื่น':'#ffa657','โยนเคส':'#ffd700'};
+
+  const tabs=[{k:'overview',l:'ภาพรวม'},{k:'sales',l:'รายเซลส์'},{k:'status',l:'สถานะ'}];
+
+  return <div className="page">
+    <div className="page-hd" style={{marginBottom:16}}>
+      <div className="page-title">📊 แดชบอร์ด</div>
+      <div style={{display:'flex',gap:8}}>
+        <button className="btn btn-ghost" onClick={()=>setShowExport(true)} style={{fontSize:13,display:'flex',alignItems:'center',gap:5}}>
+          ⬇️ Export
+        </button>
+        <button className="btn btn-ghost" onClick={load} style={{fontSize:13}}>🔄 รีเฟรช</button>
+      </div>
+    </div>
+    {showExport&&<ExportModal allCases={allCases} salesList={salesList} onClose={()=>setShowExport(false)}/>}
+
+    {/* KPI row */}
+    <div className="stat-grid" style={{marginBottom:20}}>
+      {[
+        ['เคสเดือนนี้', totalCases,   'var(--blue)'],
+        ['ปล่อยแล้ว',  totalSold,    'var(--green)'],
+        ['รับจากตลาด', totalClaimed, 'var(--purple)'],
+        ['Sales ทั้งหมด',salesList.length,'var(--orange)'],
+      ].map(([l,v,c])=>
+        <div key={l} className="stat-card">
+          <div className="stat-num" style={{color:c}}>{v}</div>
+          <div className="stat-lbl">{l}</div>
+        </div>
+      )}
+    </div>
+
+    {/* Tabs */}
+    <div style={{display:'flex',gap:6,marginBottom:18,borderBottom:'1px solid var(--border)',paddingBottom:10}}>
+      {tabs.map(t=><button key={t.k}
+        onClick={()=>setTab(t.k)}
+        style={{padding:'6px 18px',borderRadius:20,border:'none',cursor:'pointer',fontSize:13,fontWeight:600,
+          background:tab===t.k?'var(--blue2)':'var(--bg3)',
+          color:tab===t.k?'#fff':'var(--text2)',
+          transition:'all .15s'}}>
+        {t.l}
+      </button>)}
+    </div>
+
+    {/* ── Tab: ภาพรวม ── */}
+    {tab==='overview'&&<div style={{display:'grid',gap:16}}>
+
+      {/* กราฟ: เคสต่อเซลส์ */}
+      <div className="card">
+        <div style={{fontWeight:700,marginBottom:16,fontSize:14}}>📋 เคสต่อเซลส์ (เดือนนี้)</div>
+        <div style={{height:220}}>
+          <BarChart
+            id="salesBar"
+            labels={salesList.map(s=>s.name)}
+            datasets={[
+              {label:'เคสปัจจุบัน',data:salesList.map(s=>s.currentCases||0),backgroundColor:'rgba(88,166,255,.8)'},
+              {label:'รับตลาด',    data:salesList.map(s=>s.claimedCases||0),backgroundColor:'rgba(188,140,255,.8)'},
+              {label:'ปล่อยแล้ว', data:salesList.map(s=>s.sold||0),        backgroundColor:'rgba(63,185,80,.85)'},
+            ]}
+          />
+        </div>
+      </div>
+
+      {/* กราฟ: สถานะรวม donut */}
+      {statusEntries.length>0&&<div className="card">
+        <div style={{fontWeight:700,marginBottom:16,fontSize:14}}>🏷 สัดส่วนสถานะทั้งระบบ</div>
+        <div style={{height:240}}>
+          <DonutChart
+            id="statusDonut"
+            labels={statusEntries.map(([k])=>k)}
+            values={statusEntries.map(([,v])=>v)}
+            colors={statusEntries.map(([k],i)=>STATUS_COLORS[k]||PALETTE[i%PALETTE.length])}
+          />
+        </div>
+      </div>}
+
+    </div>}
+
+    {/* ── Tab: รายเซลส์ ── */}
+    {tab==='sales'&&<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:14}}>
+      {salesList.map((s,i)=>{
+        const stEntries=Object.entries(s.statuses||{}).sort((a,b)=>b[1]-a[1]);
+        const maxSt=stEntries.reduce((m,[,v])=>v>m?v:m,1);
+        return <div key={i} className="card">
+          {/* Header */}
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:14}}>
+            <div style={{width:46,height:46,borderRadius:'50%',background:'var(--bg3)',border:'2px solid var(--border)',flexShrink:0,overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              {s.avatar?<img src={s.avatar} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>:<Ico.user/>}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:700,fontSize:15}}>{s.name}</div>
+              <div style={{fontSize:11,color:'var(--text2)'}}>Sales</div>
+            </div>
+          </div>
+          {/* Stats */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:14}}>
+            {[['เคส',s.currentCases||0,'var(--blue)'],['ตลาด',s.claimedCases||0,'var(--purple)'],['ปล่อย',s.sold||0,'var(--green)']].map(([l,v,c])=>
+              <div key={l} style={{textAlign:'center',background:'var(--bg3)',borderRadius:8,padding:'10px 4px'}}>
+                <div style={{fontSize:22,fontWeight:800,color:c}}>{v}</div>
+                <div style={{fontSize:11,color:'var(--text2)'}}>{l}</div>
+              </div>
+            )}
+          </div>
+          {/* Mini status bars */}
+          {stEntries.length>0&&<div>
+            <div style={{fontSize:11,color:'var(--text3)',marginBottom:6,fontWeight:600}}>สถานะเคส</div>
+            {stEntries.slice(0,6).map(([st,cnt])=>
+              <div key={st} style={{display:'flex',alignItems:'center',gap:8,marginBottom:5}}>
+                <div style={{width:8,height:8,borderRadius:'50%',background:STATUS_COLORS[st]||'var(--text3)',flexShrink:0}}/>
+                <div style={{fontSize:12,flex:1,color:'var(--text2)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{st}</div>
+                <div style={{height:6,borderRadius:3,background:STATUS_COLORS[st]||'var(--blue)',width:`${Math.round(cnt/maxSt*100)}%`,maxWidth:80,minWidth:6}}/>
+                <div style={{fontSize:12,fontWeight:700,minWidth:18,textAlign:'right'}}>{cnt}</div>
+              </div>
+            )}
+          </div>}
+        </div>;
+      })}
+    </div>}
+
+    {/* ── Tab: สถานะ ── */}
+    {tab==='status'&&<div style={{display:'grid',gap:14}}>
+
+      {/* ตารางสถานะรวม */}
+      <div className="card">
+        <div style={{fontWeight:700,marginBottom:14,fontSize:14}}>📊 สรุปสถานะทั้งระบบ</div>
+        {statusEntries.map(([st,cnt],i)=>{
+          const pct=Math.round(cnt/(totalCases||1)*100);
+          return <div key={st} style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+            <div style={{width:10,height:10,borderRadius:'50%',background:STATUS_COLORS[st]||PALETTE[i%PALETTE.length],flexShrink:0}}/>
+            <div style={{flex:1,fontSize:13}}><StatusBadge status={st}/></div>
+            <div style={{flex:2,height:8,background:'var(--bg3)',borderRadius:4,overflow:'hidden'}}>
+              <div style={{height:'100%',borderRadius:4,background:STATUS_COLORS[st]||PALETTE[i%PALETTE.length],width:`${pct}%`,transition:'width .4s'}}/>
+            </div>
+            <div style={{fontSize:13,fontWeight:700,minWidth:28,textAlign:'right'}}>{cnt}</div>
+            <div style={{fontSize:11,color:'var(--text3)',minWidth:36,textAlign:'right'}}>{pct}%</div>
+          </div>;
+        })}
+      </div>
+
+      {/* เคสต่อเซลส์ horizontal bar */}
+      <div className="card">
+        <div style={{fontWeight:700,marginBottom:16,fontSize:14}}>🏆 จำนวนเคสต่อเซลส์</div>
+        <div style={{height:Math.max(160,salesList.length*50)}}>
+          <BarChart
+            id="hBar"
+            horizontal={true}
+            labels={[...salesList].sort((a,b)=>(b.currentCases||0)-(a.currentCases||0)).map(s=>s.name)}
+            datasets={[{
+              label:'เคสปัจจุบัน',
+              data:[...salesList].sort((a,b)=>(b.currentCases||0)-(a.currentCases||0)).map(s=>s.currentCases||0),
+              backgroundColor:PALETTE.slice(0,salesList.length)
+            }]}
+          />
+        </div>
+      </div>
+
+    </div>}
+
+  </div>;
+}
+
+
+// ============================================================
+// ADMIN — BOOKINGS
+// ============================================================
+function AdminBookings({currentUser,users}){
+  const [bookings,setBookings]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [sel,setSel]=useState(null);
+  const [showAdd,setShowAdd]=useState(false);
+
+  const load=useCallback(()=>{setLoading(true);api('getBookings',{}).then(r=>{if(r.success)setBookings(r.data||[]);setLoading(false);});},[]);
+  useEffect(()=>{load();},[load]);
+
+  return <div className="page">
+    <div className="page-hd">
+      <div><div className="page-title">📝 การจอง</div><div style={{fontSize:12,color:'var(--text2)',marginTop:2}}>{bookings.length} รายการ</div></div>
+      <button className="btn btn-primary" onClick={()=>setShowAdd(true)}><Ico.plus/> เพิ่มการจอง</button>
+    </div>
+    <div className="card" style={{padding:0}}>
+      <div className="table-wrap">
+        <table>
+          <thead><tr><th>วันที่</th><th>รหัสเคส</th><th>ลูกค้า</th><th>เซลส์</th><th>รถ</th><th>รุ่น</th><th>ทะเบียน</th><th>สถานะ</th><th>หมายเหตุ</th></tr></thead>
+          <tbody>
+            {loading?<SkeletonRows n={5} cols={9}/> :
+            bookings.length===0?<tr><td colSpan={9} style={{textAlign:'center',padding:30,color:'var(--text2)'}}>ไม่มีการจอง</td></tr>:
+            bookings.map((b,i)=><tr key={i} className="clickable" onClick={()=>setSel(b)}>
+              <td style={{fontSize:12,whiteSpace:'nowrap'}}>{String(b['วันที่']||'').split(' ')[0]}</td>
+              <td><span style={{color:'var(--blue)',fontWeight:700}}>{b.CaseID}</span></td>
+              <td style={{fontWeight:500}}>{b['ลูกค้า']||'-'}</td>
+              <td style={{color:'var(--purple)'}}>{b['เซลส์']||'-'}</td>
+              <td>{b['รถ']||'-'}</td>
+              <td>{b['รุ่น']||'-'}</td>
+              <td>{b['ทะเบียน']||'-'}</td>
+              <td><StatusBadge status={b['สถานะ']}/></td>
+              <td style={{fontSize:12,color:'var(--text2)'}}>{b['หมายเหตุ']||'-'}</td>
+            </tr>)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {sel&&<BookingDetailModal booking={sel} onClose={()=>setSel(null)} onUpdated={load}/>}
+    {showAdd&&<AddBookingModal currentUser={currentUser} users={users} onClose={()=>setShowAdd(false)} onAdded={load}/>}
+  </div>;
+}
+
+function BookingDetailModal({booking,onClose,onUpdated}){
+  const [status,setStatus]=useState(booking['สถานะ']||'จองแล้ว');
+  const [note,setNote]=useState(booking['หมายเหตุ']||'');
+  const [loading,setLoading]=useState(false);
+  async function save(){
+    setLoading(true);
+    await api('updateBooking',{caseId:booking.CaseID,status,note});
+    setLoading(false);
+    onUpdated();onClose();
+  }
+  return <Modal title={`จอง — ${booking.CaseID}`} onClose={onClose} footer={<>
+    <button className="btn btn-ghost" onClick={onClose}>ยกเลิก</button>
+    <button className="btn btn-primary" onClick={save} disabled={loading}>{loading?'บันทึก...':'💾 บันทึก'}</button>
+  </>}>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:14}}>
+      {[['ลูกค้า',booking['ลูกค้า']],['เซลส์',booking['เซลส์']],['ยี่ห้อ',booking['รถ']],['รุ่น',booking['รุ่น']],['ทะเบียน',booking['ทะเบียน']],['Facebook',booking.Facebook]].map(([l,v])=>v?<div key={l}><div style={{fontSize:11,color:'var(--text2)',marginBottom:3}}>{l}</div><div style={{fontWeight:500}}>{v}</div></div>:null)}
+    </div>
+    <div className="form-group"><label>สถานะ</label><select value={status} onChange={e=>setStatus(e.target.value)}>{BOOK_STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
+    <div className="form-group"><label>หมายเหตุ</label><textarea rows={2} value={note} onChange={e=>setNote(e.target.value)}/></div>
+  </Modal>;
+}
+
+// ============================================================
+// SALES — MARKET (New Card Grid Design)
+// ============================================================
+function SalesMarket({currentUser}){
+  const [cases,setCases]=useState([]);
+  const [claimedCases,setClaimedCases]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [claimedIds,setClaimedIds]=useState(new Set()); // optimistic track
+  const [skippedIds,setSkippedIds]=useState(new Set()); // optimistic track
+  const [toast,setToast]=useState(null); // {msg, type:'ok'|'err'}
+  const [leaderboard,setLeaderboard]=useState([]);
+
+  const showToast=(msg,type='ok')=>{
+    setToast({msg,type});
+    setTimeout(()=>setToast(null),3500);
+  };
+
+  const load=useCallback((silent=false)=>{
+    if(!silent) setLoading(true);
+    Promise.all([
+      api('getMarket',{sales:currentUser.name}),
+      api('getClaimedCases',{sales:currentUser.name}),
+      api('getDashboard',{role:'Admin'})
+    ]).then(([mr,cr,dr])=>{
+      if(mr.success) setCases((mr.data||[]).filter(c=>c.old_sales!==currentUser.name));
+      if(cr.success) setClaimedCases(cr.data||[]);
+      if(dr.success) setLeaderboard(dr.data?.sales||[]);
+      setLoading(false);
+      // sync: clear optimistic sets after real data arrives
+      setClaimedIds(new Set());
+      setSkippedIds(new Set());
+    });
+  },[currentUser.name]);
+  useEffect(()=>{load();},[load]);
+
+  async function claim(caseId){
+    // Optimistic: ซ่อนการ์ดทันที + แสดง toast ทันที
+    setClaimedIds(prev=>new Set([...prev, caseId]));
+    setClaimedCases(prev=>[...prev,{caseID:caseId,sale:currentUser.name}]);
+    showToast('✅ รับเคส '+caseId+' สำเร็จ! ดูได้ที่ "รับจากตลาด"','ok');
+
+    // sync API ข้างหลัง
+    const r=await api('claimCase',{caseId,sales:currentUser.name});
+    if(!r.success){
+      // rollback ถ้า error
+      setClaimedIds(prev=>{const s=new Set(prev);s.delete(caseId);return s;});
+      setClaimedCases(prev=>prev.filter(c=>c.caseID!==caseId));
+      showToast('❌ '+(r.error||'รับเคสไม่สำเร็จ ลองใหม่'),'err');
+    } else {
+      // silent reload เพื่อ sync ข้อมูลจริง (ไม่กระตุก)
+      setTimeout(()=>load(true), 2000);
+    }
+  }
+
+  async function notInterested(caseId){
+    // Optimistic: ซ่อนการ์ดทันที
+    setSkippedIds(prev=>new Set([...prev, caseId]));
+    // sync API ข้างหลัง
+    await api('returnCase',{caseId,sales:'_skip_'+currentUser.name});
+    setTimeout(()=>load(true), 1000);
+  }
+
+  function getDateBadge(c){
+    const id=String(c.ID||'');
+    if(id.length>=4){
+      const yy=id.slice(0,2),mm=id.slice(2,4);
+      const year=2000+parseInt(yy);
+      const monthNames=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+      const monthName=monthNames[parseInt(mm)-1]||mm;
+      return `${monthName} ${year}`;
+    }
+    return '';
+  }
+
+  // กรองการ์ดที่ถูก claim/skip ออก (optimistic)
+  const visibleCases=cases.filter(c=>!claimedIds.has(c.ID)&&!skippedIds.has(c.ID));
+  const myStats=leaderboard.find(s=>s.name===currentUser.name)||{};
+  const totalInMarket=visibleCases.length;
+  const myClaimed=claimedCases.length+(claimedIds.size);
+  const lbSorted=[...leaderboard].sort((a,b)=>(b.claimedCases||0)-(a.claimedCases||0));
+
+  return <div className="mk-page">
+    {/* Hero Header */}
+    <div className="mk-hero">
+      <div className="mk-hero-top">
+        <div>
+          <div style={{fontSize:20,fontWeight:800,display:'flex',alignItems:'center',gap:8}}>🎯 ตลาดเคส</div>
+          <div style={{fontSize:13,color:'var(--text2)',marginTop:4}}>เลือกลูกค้าที่ใช่คนดูแล — ใครไวได้ก่อน</div>
+        </div>
+        <button className="btn btn-ghost" onClick={()=>load(false)} style={{fontSize:13}}>🔄</button>
+      </div>
+      <div className="mk-stats">
+        {[
+          ['ว่างอยู่',totalInMarket,'var(--blue)'],
+          ['ของฉัน',myClaimed,'var(--green)'],
+        ].map(([l,v,c])=>
+          <div key={l} className="mk-stat"><div className="mk-stat-num" style={{color:c}}>{v}</div><div className="mk-stat-lbl">{l}</div></div>
+        )}
+      </div>
+    </div>
+
+    <div className="mk-body">
+      {/* Cards Area */}
+      <div className="mk-cards-area">
+        {/* Toast notification */}
+        {toast&&<div style={{
+          background:toast.type==='ok'?'rgba(63,185,80,.12)':'rgba(248,81,73,.12)',
+          border:`1px solid ${toast.type==='ok'?'var(--green)':'var(--red)'}`,
+          padding:'10px 16px',borderRadius:8,marginBottom:14,fontSize:13,
+          display:'flex',alignItems:'center',gap:8
+        }}>
+          {toast.msg}
+        </div>}
+
+        {loading?<SkeletonCards n={6}/>:visibleCases.length===0?
+        <div style={{textAlign:'center',padding:60,color:'var(--text2)'}}>
+          <div style={{fontSize:48,marginBottom:12}}>📭</div>
+          <div style={{fontSize:16,fontWeight:600}}>ไม่มีเคสในตลาดสำหรับคุณ</div>
+          <div style={{fontSize:13,marginTop:8}}>รอเคสใหม่เข้ามา หรือเช็คอีกครั้งในภายหลัง</div>
+        </div>:
+        <>
+          <div style={{fontSize:13,color:'var(--text2)',marginBottom:12}}>พบ {visibleCases.length} เคส ที่รอคนดูแล</div>
+          <div className="mk-cards-grid">
+            {visibleCases.map((c,i)=><div key={i} className="mkc">
+              <div className="mkc-top">
+                <span className="mkc-id">{c.ID}</span>
+                <span className="mkc-date">📅 {getDateBadge(c)}</span>
+              </div>
+              <div className="mkc-name">{c.name}</div>
+              <div className="mkc-badges">
+                <StatusBadge status={c.status}/>
+                <span className="badge" style={{background:'rgba(255,166,87,.1)',color:'var(--orange)',border:'1px solid rgba(255,166,87,.3)',fontSize:11}}>เคสจาก {c.old_sales||'-'}</span>
+              </div>
+              <div className="mkc-contact">
+                📞 <span style={{filter:'blur(5px)',userSelect:'none',letterSpacing:1}}>••••••••••</span>
+                <span style={{fontSize:11,color:'var(--text3)'}}>(เห็นหลังรับเคส)</span>
+              </div>
+              {c.report&&<div className="mkc-report">{String(c.report).slice(0,130)}{c.report.length>130?'...':''}</div>}
+              <div className="mkc-actions">
+                <button className="btn-claim" onClick={()=>claim(c.ID)}>
+                  รับเคสนี้ →
+                </button>
+                <button
+                  onClick={()=>notInterested(c.ID)}
+                  title="ไม่สนใจ / ข้ามเคสนี้"
+                  style={{
+                    background:'rgba(248,81,73,.12)',
+                    color:'var(--red)',
+                    border:'1px solid rgba(248,81,73,.3)',
+                    borderRadius:8,padding:'10px 14px',
+                    fontSize:15,cursor:'pointer',
+                    transition:'all .15s',fontWeight:700,
+                    lineHeight:1
+                  }}
+                  onMouseOver={e=>e.currentTarget.style.background='rgba(248,81,73,.25)'}
+                  onMouseOut={e=>e.currentTarget.style.background='rgba(248,81,73,.12)'}
+                >✕</button>
+              </div>
+            </div>)}
+          </div>
+        </>}
+      </div>
+
+      {/* Sidebar */}
+      <div className="mk-sidebar">
+        <div className="mk-sb-section">
+          <div className="mk-sb-title">🏆 Leaderboard รับเคส</div>
+          {lbSorted.length===0?<div style={{fontSize:12,color:'var(--text2)',textAlign:'center',padding:'12px 0'}}>ยังไม่มีข้อมูล</div>:
+          lbSorted.map((s,i)=><div key={i} className="lb-row">
+            <div className="lb-rank" style={{background:i===0?'#3d2a00':i===1?'#1c1c2e':i===2?'#1a2a00':'var(--bg3)',color:i===0?'#ffd700':i===1?'#c0c0c0':i===2?'#cd7f32':'var(--text2)'}}>
+              {i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontWeight:s.name===currentUser.name?700:500,fontSize:13,color:s.name===currentUser.name?'var(--blue)':'var(--text)'}}>{s.name}{s.name===currentUser.name?' (ฉัน)':''}</div>
+            </div>
+            <span style={{fontWeight:700,color:'var(--blue)',fontSize:14}}>{s.claimedCases||0}</span>
+          </div>)}
+        </div>
+        <div className="mk-sb-section">
+          <div className="mk-sb-title">📊 สถิติของฉัน</div>
+          <div style={{display:'flex',flex:1,flexDirection:'column',gap:6}}>
+            {[
+              ['เคสที่รับไปแล้ว',myClaimed,'var(--blue)'],
+              ['ปล่อยแล้ว',myStats.sold||0,'var(--green)'],
+              ['เคสปัจจุบัน',myStats.currentCases||0,'var(--purple)']
+            ].map(([l,v,c])=><div key={l} className="sb-stat-row">
+              <span style={{fontSize:13}}>{l}</span>
+              <span style={{fontWeight:800,fontSize:16,color:c}}>{v}</span>
+            </div>)}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// SALES — CURRENT CASES
+// ============================================================
+function SalesCurrentCases({currentUser,users}){
+  const [cases,setCases]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [sel,setSel]=useState(null);
+  const [q,setQ]=useState('');
+  const [sortDir,setSortDir]=useState('desc'); // desc=ใหม่ก่อน, asc=เก่าก่อน
+  const [filterStatus,setFilterStatus]=useState('');
+  const [showClosed,setShowClosed]=useState(false);
+
+  const CLOSED_STATUSES=['ปิดเคส','รีเจค','ได้รถจากที่อื่น','โยนเคส','ปล่อยแล้ว'];
+
+  const load=useCallback(()=>{
+    setLoading(true);
+    api('getCases',{sales:currentUser.name,all:'true'}).then(r=>{
+      if(r.success) setCases(r.data||[]);
+      setLoading(false);
+    });
+  },[currentUser.name]);
+  useEffect(()=>{load();},[load]);
+
+  // filter + sort
+  const filtered = cases
+    .filter(c=>{
+      if(!showClosed && CLOSED_STATUSES.includes(c.status)) return false;
+      if(filterStatus && c.status!==filterStatus) return false;
+      if(q){
+        const lq=q.toLowerCase();
+        return String(c.caseid).includes(lq)||
+               String(c.customername||'').toLowerCase().includes(lq)||
+               String(c.contact||'').toLowerCase().includes(lq)||
+               String(c.report||'').toLowerCase().includes(lq);
+      }
+      return true;
+    })
+    .sort((a,b)=>{
+      const av=String(a.caseid||''), bv=String(b.caseid||'');
+      return sortDir==='desc'?bv.localeCompare(av):av.localeCompare(bv);
+    });
+
+  const activeCount=cases.filter(c=>!CLOSED_STATUSES.includes(c.status)).length;
+  const closedCount=cases.filter(c=>CLOSED_STATUSES.includes(c.status)).length;
+
+  function formatDate(d){
+    const s=String(d||'');
+    // ISO format → แปลงเป็น dd/mm/yy HH:mm
+    if(s.includes('T')){
+      const dt=new Date(s);
+      if(!isNaN(dt)){
+        const dd=String(dt.getDate()).padStart(2,'0');
+        const mm=String(dt.getMonth()+1).padStart(2,'0');
+        const yy=String(dt.getFullYear()).slice(-2);
+        const hh=String(dt.getHours()).padStart(2,'0');
+        const min=String(dt.getMinutes()).padStart(2,'0');
+        return `${dd}/${mm}/${yy} ${hh}:${min}`;
+      }
+    }
+    // dd/MM/yyyy HH:mm:ss → เอาแค่ dd/mm/yy HH:mm
+    const m=s.match(/(\d+)\/(\d+)\/(\d+)\s+(\d+):(\d+)/);
+    if(m) return `${m[1]}/${m[2]}/${String(m[3]).slice(-2)} ${m[4]}:${m[5]}`;
+    return s.split(' ')[0]||'-';
+  }
+
+  return <div className="page">
+    {/* Header */}
+    <div className="page-hd" style={{marginBottom:12}}>
+      <div>
+        <div className="page-title">📋 เคสของฉัน</div>
+        <div style={{fontSize:12,color:'var(--text2)',marginTop:2}}>
+          กำลังดูแล <span style={{color:'var(--blue)',fontWeight:700}}>{activeCount}</span> เคส
+          {closedCount>0&&<span style={{marginLeft:8,color:'var(--text3)'}}>· ปิดแล้ว {closedCount}</span>}
+        </div>
+      </div>
+      <button className="btn btn-ghost" onClick={load} style={{padding:'6px 10px'}}>🔄</button>
+    </div>
+
+    {/* Search bar */}
+    <div style={{display:'flex',gap:8,marginBottom:10,flexWrap:'wrap'}}>
+      <div style={{position:'relative',flex:1,minWidth:180}}>
+        <span style={{position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',color:'var(--text3)',pointerEvents:'none',fontSize:14}}>🔍</span>
+        <input
+          value={q} onChange={e=>setQ(e.target.value)}
+          placeholder="ค้นหาชื่อ เบอร์ รหัสเคส รีพอร์ต..."
+          style={{paddingLeft:32,fontSize:13}}
+        />
+      </div>
+      {q&&<button className="btn btn-ghost" style={{fontSize:12,padding:'6px 10px'}} onClick={()=>setQ('')}>✕ ล้าง</button>}
+    </div>
+
+    {/* Filter row */}
+    <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap',alignItems:'center'}}>
+      {/* Sort toggle */}
+      <button
+        className="btn btn-ghost"
+        style={{fontSize:12,padding:'6px 12px',display:'flex',alignItems:'center',gap:4,border:'1px solid var(--border)',borderRadius:20}}
+        onClick={()=>setSortDir(d=>d==='desc'?'asc':'desc')}
+      >
+        {sortDir==='desc'?<>🆕 ใหม่สุดก่อน ↓</>:<>🕰 เก่าสุดก่อน ↑</>}
+      </button>
+
+      {/* Status filter */}
+      <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}
+        style={{fontSize:12,padding:'6px 10px',borderRadius:20,minWidth:120,flex:1,maxWidth:180}}>
+        <option value="">ทุกสถานะ</option>
+        {STATUSES.map(s=><option key={s}>{s}</option>)}
+      </select>
+
+      {/* Show closed toggle */}
+      <button
+        className="btn btn-ghost"
+        style={{fontSize:12,padding:'6px 12px',borderRadius:20,
+          border:`1px solid ${showClosed?'var(--red)':'var(--border)'}`,
+          color:showClosed?'var(--red)':'var(--text2)'}}
+        onClick={()=>setShowClosed(v=>!v)}
+      >
+        {showClosed?'🔴 ซ่อนปิดแล้ว':'⚫ แสดงเคสที่ปิด'}
+      </button>
+
+      {/* Result count */}
+      <span style={{fontSize:12,color:'var(--text3)',marginLeft:'auto'}}>แสดง {filtered.length} รายการ</span>
+    </div>
+
+    {/* Case list */}
+    {loading?<SkeletonCards n={4}/>:filtered.length===0?
+      <div style={{textAlign:'center',padding:40,color:'var(--text2)'}}>
+        <div style={{fontSize:32,marginBottom:8}}>🔍</div>
+        <div>{q||filterStatus?'ไม่พบเคสที่ตรงกัน':'ยังไม่มีเคส'}</div>
+      </div>:
+      filtered.map((c,i)=><div key={i} className="market-card" onClick={()=>setSel(c)} style={{cursor:'pointer',opacity:CLOSED_STATUSES.includes(c.status)?0.6:1}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:8}}>
+          <span style={{color:'var(--blue)',fontWeight:700,fontSize:15}}>{c.caseid}</span>
+          <StatusBadge status={c.status}/>
+        </div>
+        <div style={{fontWeight:600,marginBottom:4,fontSize:15}}>{c.customername}</div>
+        <div style={{fontSize:12,color:'var(--text2)',marginBottom:6,display:'flex',alignItems:'center',gap:4,flexWrap:'wrap'}}>
+          <span>📞 {displayContact(c.contact)}</span>
+          <span style={{color:'var(--text3)'}}>·</span>
+          <span>🕐 {formatDate(c.updatedat||c.createdat)}</span>
+        </div>
+        {c.report&&<div style={{fontSize:12,color:'var(--text2)',background:'var(--bg3)',padding:'6px 10px',borderRadius:6,marginTop:4,lineHeight:1.5}}>{String(c.report).slice(0,100)}{String(c.report).length>100?'...':''}</div>}
+        <div style={{marginTop:10,display:'flex',gap:6}}>
+          {!CLOSED_STATUSES.includes(c.status)&&
+            <button className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',color:'var(--yellow)'}}
+              onClick={e=>{e.stopPropagation();if(window.confirm('ส่งเคส '+c.caseid+' ขึ้นตลาด?'))api('sendToMarket',{caseId:c.caseid,sales:currentUser.name}).then(()=>load());}}>
+              ⬆ ส่งตลาด
+            </button>
+          }
+        </div>
+      </div>)
+    }
+    {sel&&<CaseModal caseData={sel} users={users} currentUser={currentUser} onClose={()=>setSel(null)} onUpdated={load}/>}
+  </div>;
+}
+
+// ============================================================
+// SALES — CLAIMED CASES
+// ============================================================
+function SalesClaimedCases({currentUser,users}){
+  const [cases,setCases]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [sel,setSel]=useState(null);
+  const [confirm,setConfirm]=useState(null);
+
+  const load=useCallback(()=>{setLoading(true);api('getClaimedCases',{sales:currentUser.name}).then(r=>{if(r.success)setCases(r.data||[]);setLoading(false);});},[currentUser.name]);
+  useEffect(()=>{load();},[load]);
+
+  async function returnCase(caseId){
+    await api('returnCase',{caseId,sales:currentUser.name});
+    load();
+  }
+
+  return <div className="page">
+    <div className="page-hd"><div className="page-title">📥 เคสที่รับจากตลาด</div><button className="btn btn-ghost" onClick={load}>🔄</button></div>
+    {loading?<SkeletonCards n={3}/>:cases.length===0?<div style={{textAlign:'center',padding:40,color:'var(--text2)'}}>ยังไม่มีเคสที่รับจากตลาด</div>:
+    cases.map((c,i)=><div key={i} className="market-card" onClick={()=>setSel(c)} style={{cursor:'pointer'}}>
+      <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+        <span style={{color:'var(--blue)',fontWeight:700}}>{c.caseID}</span>
+        <StatusBadge status={c.newstatus||c.status}/>
+      </div>
+      <div style={{fontWeight:500,marginBottom:4}}>{c.customername}</div>
+      <div style={{fontSize:12,color:'var(--text2)',marginBottom:6}}>
+        รับมาจาก: <span style={{color:'var(--orange)'}}>{c.fromsales||'-'}</span>
+        {' · '}รับเมื่อ: {String(c.AssignedAt||'').split(' ')[0]}
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:8}}>
+        <button className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',color:'var(--green)'}} onClick={e=>{e.stopPropagation();navigator.clipboard&&navigator.clipboard.writeText(formatContact(c.contact)||'');}}>
+          <Ico.copy/> {formatContact(c.contact)||'ไม่มีเบอร์'}
+        </button>
+        <button className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',marginLeft:'auto'}} onClick={e=>{e.stopPropagation();setConfirm(c.caseID);}}>↩ คืนเคส</button>
+      </div>
+    </div>)}
+    {sel&&<CaseModal caseData={{...sel,caseid:sel.caseID}} users={users} currentUser={currentUser} onClose={()=>setSel(null)} onUpdated={load}/>}
+    {confirm&&<Confirm msg={`คืนเคส ${confirm} กลับตลาด?`} onOk={()=>{returnCase(confirm);setConfirm(null);}} onCancel={()=>setConfirm(null)}/>}
+  </div>;
+}
+
+// ============================================================
+// SALES — DASHBOARD
+// ============================================================
+function SalesDashboard({currentUser}){
+  const [data,setData]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [userInfo,setUserInfo]=useState(null);
+
+  useEffect(()=>{
+    cacheClear(['getDashboard']);
+    api('getDashboard',{role:'Sales',sales:currentUser.name}).then(r=>{
+      if(r.success) setData(r.data);
+      setLoading(false);
+    });
+  },[currentUser.name]);
+
+  if(loading)return <div className="page"><Loading/></div>;
+  if(!data)return <div className="page"><p>ไม่พบข้อมูล</p></div>;
+
+  // แปลง startdate จาก Google Sheets ซึ่งอาจส่งมาหลาย format:
+  // 1) dd/MM/yyyy เช่น "08/08/2021"
+  // 2) ISO string เช่น "2021-08-08T00:00:00.000Z"
+  // 3) Sheets serial number เช่น 44416 (วันที่นับจาก 30/12/1899)
+  function parseStartDate(startdate){
+    if(!startdate&&startdate!==0) return null;
+    const s=String(startdate).trim();
+    if(!s||s==='') return null;
+
+    // Sheets serial number (pure number)
+    if(/^\d{4,6}$/.test(s)){
+      const serial=parseInt(s);
+      // Excel/Sheets epoch: Jan 1 1900 = serial 1 (แต่มี bug leap year 1900)
+      const d=new Date((serial-25569)*86400000); // แปลงเป็น Unix ms
+      if(!isNaN(d)) return d;
+    }
+
+    // dd/MM/yyyy หรือ d/M/yyyy
+    if(s.includes('/')){
+      const parts=s.split('/');
+      if(parts.length>=3){
+        const p0=parseInt(parts[0]),p1=parseInt(parts[1]),p2=parseInt(parts[2]);
+        // ถ้า part[2] เป็นปีสี่หลัก → dd/MM/yyyy
+        if(parts[2].length===4){
+          const d=new Date(p2, p1-1, p0);
+          if(!isNaN(d)) return d;
+        }
+        // อาจเป็น MM/dd/yyyy
+        const d2=new Date(p2, p0-1, p1);
+        if(!isNaN(d2)) return d2;
+      }
+    }
+
+    // ISO หรือ format อื่นๆ ที่ Date() รองรับ
+    const d=new Date(s);
+    if(!isNaN(d)) return d;
+
+    return null;
+  }
+
+  function calcDaysWorked(startdate){
+    const d=parseStartDate(startdate);
+    if(!d) return null;
+    const diff=Math.floor((Date.now()-d.getTime())/(1000*60*60*24));
+    return diff>=0?diff:null;
+  }
+
+  function formatStartDate(startdate){
+    const d=parseStartDate(startdate);
+    if(!d) return null;
+    const dd=String(d.getDate()).padStart(2,'0');
+    const mm=String(d.getMonth()+1).padStart(2,'0');
+    const yyyy=d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  const startdate = data?.startdate || currentUser.startdate;
+  const daysWorked = calcDaysWorked(startdate);
+  const yearsMonths = daysWorked!=null
+    ? (()=>{
+        const y=Math.floor(daysWorked/365);
+        const m=Math.floor((daysWorked%365)/30);
+        const d=daysWorked%30;
+        if(y>0&&m>0) return `${y} ปี ${m} เดือน`;
+        if(y>0) return `${y} ปี`;
+        if(m>0&&d>0) return `${m} เดือน ${d} วัน`;
+        if(m>0) return `${m} เดือน`;
+        return `${daysWorked} วัน`;
+      })()
+    : null;
+
+  return <div className="page">
+    <div className="page-hd"><div className="page-title">📊 แดชบอร์ดของฉัน</div></div>
+    <div style={{display:'flex',gap:12,marginBottom:20,alignItems:'center'}}>
+      <div style={{width:64,height:64,borderRadius:'50%',background:'var(--bg3)',border:'2px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
+        {currentUser.avatar?<img src={currentUser.avatar} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<Ico.user/>}
+      </div>
+      <div>
+        <div style={{fontWeight:700,fontSize:18}}>{currentUser.name}</div>
+        <div style={{fontSize:13,color:'var(--text2)'}}>Sales · ประจำเดือนนี้</div>
+        {startdate&&<div style={{marginTop:5,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+          <span style={{fontSize:12,color:'var(--text3)'}}>📅 เริ่ม {formatStartDate(startdate)}</span>
+          {yearsMonths&&<span style={{
+            fontSize:12,fontWeight:700,
+            background:'rgba(88,166,255,.12)',color:'var(--blue)',
+            border:'1px solid rgba(88,166,255,.25)',
+            borderRadius:20,padding:'2px 10px'
+          }}>⏱ {yearsMonths} ({daysWorked} วัน)</span>}
+        </div>}
+      </div>
+    </div>
+    <div className="stat-grid">
+      {[['เคสของฉัน',data.currentCases||0,'var(--blue)'],['รับตลาด',data.claimedCases||0,'var(--purple)'],['ปล่อยแล้ว',data.sold||0,'var(--green)']].map(([l,v,c])=>
+        <div key={l} className="stat-card"><div className="stat-num" style={{color:c}}>{v}</div><div className="stat-lbl">{l}</div></div>
+      )}
+    </div>
+    {data.statuses&&Object.keys(data.statuses).length>0&&<div className="card">
+      <div style={{fontWeight:600,marginBottom:12}}>สถานะเคส</div>
+      {Object.entries(data.statuses).map(([s,v])=><div key={s} style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+        <StatusBadge status={s}/>
+        <span style={{fontWeight:700}}>{v}</span>
+      </div>)}
+    </div>}
+  </div>;
+}
+
+// ============================================================
+// ADMIN — MANAGE USERS
+// ============================================================
+function AdminUsers({currentUser}){
+  const [users,setUsers]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [showAdd,setShowAdd]=useState(false);
+  const [form,setForm]=useState({username:'',password:'1234',name:'',role:'Sales'});
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+
+  const load=()=>{setLoading(true);api('getUsers').then(r=>{if(r.success)setUsers(r.data||[]);setLoading(false);});};
+  useEffect(()=>{load();},[]);
+
+  async function addUser(){
+    if(!form.username||!form.name)return alert('กรอกชื่อและ username');
+    await api('addUser',form);load();setShowAdd(false);setForm({username:'',password:'1234',name:'',role:'Sales'});
+  }
+
+  return <div className="page">
+    <div className="page-hd">
+      <div className="page-title">👥 จัดการผู้ใช้</div>
+      <button className="btn btn-primary" onClick={()=>setShowAdd(true)}><Ico.plus/> เพิ่มผู้ใช้</button>
+    </div>
+    <div className="card" style={{padding:0}}>
+      <div className="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Username</th><th>ชื่อ</th><th>Role</th><th>สถานะ</th></tr></thead>
+          <tbody>
+            {loading?<SkeletonRows n={5} cols={5}/> :
+            users.map((u,i)=><tr key={i}>
+              <td style={{fontSize:12,color:'var(--text2)'}}>{u.userId}</td>
+              <td style={{fontWeight:600}}>{u.username}</td>
+              <td>{u.name}</td>
+              <td><span className={`badge ${u.role==='Admin'?'s-approve':'s-book'}`}>{u.role}</span></td>
+              <td><span className={`badge ${u.status==='active'?'s-go':'s-reject'}`}>{u.status}</span></td>
+            </tr>)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {showAdd&&<Modal title="เพิ่มผู้ใช้ใหม่" onClose={()=>setShowAdd(false)} footer={<>
+      <button className="btn btn-ghost" onClick={()=>setShowAdd(false)}>ยกเลิก</button>
+      <button className="btn btn-primary" onClick={addUser}>บันทึก</button>
+    </>}>
+      <div style={{display:'grid',gap:12}}>
+        <div className="form-group"><label>Username</label><input value={form.username} onChange={e=>set('username',e.target.value)}/></div>
+        <div className="form-group"><label>รหัสผ่าน</label><input value={form.password} onChange={e=>set('password',e.target.value)}/></div>
+        <div className="form-group"><label>ชื่อที่แสดง</label><input value={form.name} onChange={e=>set('name',e.target.value)}/></div>
+        <div className="form-group"><label>Role</label><select value={form.role} onChange={e=>set('role',e.target.value)}><option>Sales</option><option>Admin</option></select></div>
+      </div>
+    </Modal>}
+  </div>;
+}
+
+// ============================================================
+// LOGIN PAGE
+// ============================================================
+function LoginPage({onLogin}){
+  const [username,setUsername]=useState('');
+  const [password,setPassword]=useState('');
+  const [showPass,setShowPass]=useState(false);
+  const [loading,setLoading]=useState(false);
+  const [error,setError]=useState('');
+
+  async function submit(){
+    if(!username||!password)return setError('กรุณากรอกข้อมูลให้ครบ');
+    setLoading(true);setError('');
+    const r=await api('login',{username,password});
+    setLoading(false);
+    if(r.success)onLogin(r.user);
+    else setError(r.error||'เข้าสู่ระบบไม่สำเร็จ');
+  }
+
+  return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',padding:16}}>
+    <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:16,padding:32,width:'100%',maxWidth:380,boxShadow:'var(--shadow)'}}>
+      <div style={{textAlign:'center',marginBottom:28}}>
+        <div style={{fontSize:40,marginBottom:8}}>🚗</div>
+        <div style={{fontSize:22,fontWeight:800,color:'var(--text)'}}>CasePool</div>
+        <div style={{fontSize:13,color:'var(--text2)',marginTop:4}}>ระบบจัดการเคสรถยนต์</div>
+      </div>
+      {!API_URL&&<div style={{background:'rgba(210,153,34,.1)',border:'1px solid var(--yellow)',borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:12,color:'var(--yellow)'}}>
+        ⚙️ Demo Mode — ยังไม่ได้เชื่อม Google Sheets<br/>ลอง: admin/admin1234 หรือ fab/fab1234
+      </div>}
+      {error&&<div style={{background:'rgba(248,81,73,.1)',border:'1px solid var(--red)',borderRadius:8,padding:'10px 14px',marginBottom:16,fontSize:13,color:'var(--red)'}}>{error}</div>}
+      <div className="form-group"><label>Username</label><input value={username} onChange={e=>setUsername(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()} placeholder="กรอก Username ของคุณ" autoComplete="username"/></div>
+      <div className="form-group">
+        <label>รหัสผ่าน</label>
+        <div style={{position:'relative'}}>
+          <input type={showPass?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()} autoComplete="current-password"/>
+          <button onClick={()=>setShowPass(!showPass)} style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',color:'var(--text2)',cursor:'pointer',fontSize:14}}>{showPass?'🙈':'👁'}</button>
+        </div>
+      </div>
+      <button className="btn btn-primary" onClick={submit} disabled={loading} style={{width:'100%',padding:'10px',fontSize:15,marginTop:4}}>
+        {loading?'⏳ กำลังเข้าสู่ระบบ...':'เข้าสู่ระบบ →'}
+      </button>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// ADMIN APP
+// ============================================================
+function AdminApp({currentUser,onLogout}){
+  const [page,setPage]=useState('cases');
+  const [users,setUsers]=useState([]);
+  const [showNotif,setShowNotif]=useState(false);
+  const [notifCount,setNotifCount]=useState(0);
+
+  useEffect(()=>{
+    api('getUsers').then(r=>{if(r.success)setUsers(r.data||[]);});
+    api('getNotifications',{sales:'admin'}).then(r=>{if(r.success){const u=r.data.filter(n=>n['สถานะ']==='unread');setNotifCount(u.length);}});
+  },[]);
+
+  const pages={cases:<AdminCurrentCases currentUser={currentUser} users={users}/>,market:<AdminMarket currentUser={currentUser} users={users}/>,dashboard:<AdminDashboard currentUser={currentUser}/>,bookings:<AdminBookings currentUser={currentUser} users={users}/>,users:<AdminUsers currentUser={currentUser}/>};
+
+  const navItems=[
+    {key:'cases',icon:<Ico.home/>,label:'เคสปัจจุบัน'},
+    {key:'market',icon:<Ico.market/>,label:'ตลาดเคส'},
+    {key:'dashboard',icon:<Ico.dash/>,label:'แดชบอร์ด'},
+    {key:'bookings',icon:<Ico.book/>,label:'การจอง'},
+    {key:'users',icon:<Ico.user/>,label:'ผู้ใช้'},
+  ];
+
+  return <div>
+    <div className="sidebar">
+      <div className="sidebar-logo">
+        <div style={{fontWeight:800,fontSize:18,color:'var(--blue)'}}>🚗 CasePool</div>
+        <div style={{fontSize:12,color:'var(--text2)',marginTop:2}}>Admin Panel</div>
+      </div>
+      <nav className="sidebar-nav">
+        {navItems.map(n=><div key={n.key} className={`nav-item ${page===n.key?'active':''}`} onClick={()=>setPage(n.key)}>
+          {n.icon}<span>{n.label}</span>
+        </div>)}
+      </nav>
+      <div style={{padding:'12px 16px',borderTop:'1px solid var(--border)'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:10}}>
+          <div style={{width:36,height:36,borderRadius:'50%',background:'var(--bg3)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden'}}>
+            {currentUser.avatar?<img src={currentUser.avatar} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<Ico.user/>}
+          </div>
+          <div><div style={{fontWeight:600,fontSize:13}}>{currentUser.name}</div><div style={{fontSize:11,color:'var(--text2)'}}>Admin</div></div>
+        </div>
+        <div style={{display:'flex',gap:6}}>
+          <button className="btn btn-ghost" style={{flex:1,fontSize:12,position:'relative'}} onClick={()=>setShowNotif(!showNotif)}>
+            <Ico.bell/>{notifCount>0&&<span style={{position:'absolute',top:2,right:4,background:'var(--red)',width:16,height:16,borderRadius:'50%',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff'}}>{notifCount}</span>}
+          </button>
+          <button className="btn btn-ghost" style={{flex:1,fontSize:12}} onClick={()=>toggleTheme()} title="เปลี่ยนธีม">🌓</button>
+          <button className="btn btn-ghost" style={{flex:1,fontSize:12}} onClick={onLogout}><Ico.logout/></button>
+        </div>
+      </div>
+    </div>
+    <div className="main-content">{pages[page]||pages.cases}</div>
+    {showNotif&&<NotifPanel user={currentUser} onClose={()=>setShowNotif(false)} onCountChange={setNotifCount}/>}
+  </div>;
+}
+
+// ============================================================
+// SALES APP
+// ============================================================
+function SalesApp({currentUser,onLogout}){
+  const [page,setPage]=useState('market');
+  const [users,setUsers]=useState([]);
+  const [showNotif,setShowNotif]=useState(false);
+  const [notifCount,setNotifCount]=useState(0);
+
+  useEffect(()=>{
+    api('getUsers').then(r=>{if(r.success)setUsers(r.data||[]);});
+    function refreshNotif(){api('getNotifications',{sales:currentUser.name}).then(r=>{if(r.success){const u=r.data.filter(n=>n['สถานะ']==='unread');setNotifCount(u.length);}});}
+    refreshNotif();
+    const t=setInterval(refreshNotif,30000);
+    return ()=>clearInterval(t);
+  },[currentUser.name]);
+
+  const pages={market:<SalesMarket currentUser={currentUser}/>,cases:<SalesCurrentCases currentUser={currentUser} users={users}/>,claimed:<SalesClaimedCases currentUser={currentUser} users={users}/>,dashboard:<SalesDashboard currentUser={currentUser}/>};
+
+  const navItems=[
+    {key:'market',icon:<Ico.market/>,label:'ตลาด'},
+    {key:'cases',icon:<Ico.home/>,label:'เคสของฉัน'},
+    {key:'claimed',icon:<Ico.inbox/>,label:'รับจากตลาด'},
+    {key:'dashboard',icon:<Ico.dash/>,label:'แดชบอร์ด'},
+  ];
+
+  // Top bar
+  return <div>
+    <div style={{position:'fixed',top:0,left:0,right:0,height:56,background:'var(--bg2)',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',zIndex:50}}>
+      <div style={{fontWeight:800,color:'var(--blue)'}}>🚗 CasePool</div>
+      <div style={{display:'flex',alignItems:'center',gap:12}}>
+        <div style={{fontSize:14,color:'var(--text2)'}}>{currentUser.name}</div>
+        <button className="btn btn-ghost" style={{padding:'4px 8px'}} onClick={()=>{toggleTheme();}} title="เปลี่ยนธีม">🌓</button>
+        <button className="btn btn-ghost" style={{padding:'4px 8px',position:'relative'}} onClick={()=>setShowNotif(!showNotif)}>
+          <Ico.bell/>
+          {notifCount>0&&<span style={{position:'absolute',top:0,right:0,background:'var(--red)',width:16,height:16,borderRadius:'50%',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff'}}>{notifCount}</span>}
+        </button>
+        <button className="btn btn-ghost" style={{padding:'4px 8px'}} onClick={onLogout}><Ico.logout/></button>
+      </div>
+    </div>
+    <div style={{paddingTop:56}}>{pages[page]||pages.market}</div>
+    <div className="bottom-nav">
+      {navItems.map(n=><div key={n.key} className={`bottom-nav-item ${page===n.key?'active':''}`} onClick={()=>setPage(n.key)}>
+        {n.icon}<span>{n.label}</span>
+      </div>)}
+    </div>
+    {showNotif&&<NotifPanel user={currentUser} onClose={()=>setShowNotif(false)} onCountChange={setNotifCount}/>}
+  </div>;
+}
+
+// ============================================================
+// ROOT APP
+// ============================================================
+function App(){
+  const [user,setUser]=useState(()=>{
+    try{const s=sessionStorage.getItem('casepool_user');return s?JSON.parse(s):null;}catch{return null;}
+  });
+
+  const [showLogoutConfirm,setShowLogoutConfirm]=useState(false);
+
+  function handleLogin(u){
+    sessionStorage.setItem('casepool_user',JSON.stringify(u));
+    setUser(u);
+  }
+  function handleLogout(){
+    sessionStorage.removeItem('casepool_user');
+    // ล้าง cache ทั้งหมดตอน logout
+    Object.keys(_cache).forEach(k=>delete _cache[k]);
+    setUser(null);
+    setShowLogoutConfirm(false);
+  }
+
+  if(!user) return <LoginPage onLogin={handleLogin}/>;
+
+  const logoutConfirmModal = showLogoutConfirm && (
+    <div className="overlay" style={{zIndex:9999}}>
+      <div className="modal" style={{maxWidth:320}}>
+        <div className="modal-bd" style={{textAlign:'center',padding:'32px 24px'}}>
+          <div style={{fontSize:40,marginBottom:12}}>👋</div>
+          <div style={{fontWeight:700,fontSize:16,marginBottom:8}}>ออกจากระบบ?</div>
+          <div style={{fontSize:13,color:'var(--text2)',marginBottom:24}}>
+            {user.name} · {user.role}
+          </div>
+          <div style={{display:'flex',gap:10}}>
+            <button className="btn btn-ghost" style={{flex:1,padding:'10px'}}
+              onClick={()=>setShowLogoutConfirm(false)}>
+              ยกเลิก
+            </button>
+            <button className="btn btn-danger" style={{flex:1,padding:'10px'}}
+              onClick={handleLogout}>
+              ออกจากระบบ
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if(user.role==='Admin') return <>{logoutConfirmModal}<AdminApp currentUser={user} onLogout={()=>setShowLogoutConfirm(true)}/></>;
+  return <>{logoutConfirmModal}<SalesApp currentUser={user} onLogout={()=>setShowLogoutConfirm(true)}/></>;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
