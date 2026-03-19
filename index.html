@@ -178,6 +178,35 @@ function toggleTheme(){
   try{ localStorage.setItem('cp_theme', document.body.classList.contains('light')?'light':'dark'); }catch(e){}
 }
 
+// ── Copy to clipboard + toast ──
+let _copyToastTimer=null;
+function copyText(text){
+  try{ navigator.clipboard.writeText(text||''); }catch(e){}
+  // ลบ toast เก่าถ้ามี
+  if(_copyToastTimer) clearTimeout(_copyToastTimer);
+  let el=document.getElementById('cp-copy-toast');
+  if(!el){
+    el=document.createElement('div');
+    el.id='cp-copy-toast';
+    Object.assign(el.style,{
+      position:'fixed',bottom:'80px',left:'50%',transform:'translateX(-50%) translateY(20px)',
+      background:'rgba(63,185,80,.95)',color:'#fff',padding:'9px 22px',
+      borderRadius:'30px',fontSize:'13px',fontWeight:'700',
+      boxShadow:'0 6px 24px rgba(0,0,0,.4)',zIndex:'9999',
+      transition:'opacity .25s, transform .25s',opacity:'0',pointerEvents:'none',
+      whiteSpace:'nowrap',letterSpacing:'.3px',display:'flex',alignItems:'center',gap:'6px'
+    });
+    document.body.appendChild(el);
+  }
+  el.innerHTML='✅&nbsp; คัดลอกแล้ว!';
+  el.style.opacity='1';
+  el.style.transform='translateX(-50%) translateY(0)';
+  _copyToastTimer=setTimeout(()=>{
+    el.style.opacity='0';
+    el.style.transform='translateX(-50%) translateY(10px)';
+  },1800);
+}
+
 // ============================================================
 // CONSTANTS
 // ============================================================
@@ -749,7 +778,7 @@ function CaseModal({caseData,users,currentUser,onClose,onUpdated}){
                 <span style={{fontWeight:600}}>{caseData.customername||caseData.name||'-'}</span>
                 {(caseData.customername||caseData.name)&&
                   <button className="btn btn-primary" style={{padding:'3px 14px',fontSize:12,borderRadius:20}}
-                    onClick={()=>{try{navigator.clipboard.writeText(caseData.customername||caseData.name||'');}catch(e){}}}>
+                    onClick={()=>{copyText(caseData.customername||caseData.name||'');}}}>
                     Copy
                   </button>
                 }
@@ -765,7 +794,7 @@ function CaseModal({caseData,users,currentUser,onClose,onUpdated}){
                   </div>
                 : <>
                     <span style={{fontWeight:600}}>{contactVal||'-'}</span>
-                    {contactVal&&<button className="btn btn-primary" style={{padding:'3px 14px',fontSize:12,borderRadius:20}} onClick={()=>{try{navigator.clipboard.writeText(contactVal);}catch(e){}}}>Copy</button>}
+                    {contactVal&&<button className="btn btn-primary" style={{padding:'3px 14px',fontSize:12,borderRadius:20}} onClick={()=>copyText(contactVal)}>Copy</button>}
                     {contactVal&&/^\d{9,10}$/.test(contactVal.replace(/\D/g,''))&&<a href={`tel:${contactVal}`} className="contact-action-btn" style={{background:'rgba(63,185,80,.15)',color:'var(--green)',textDecoration:'none'}}><Ico.phone/>โทร</a>}
                     {contactVal&&/^\d{9,10}$/.test(contactVal.replace(/\D/g,''))&&<a href={`https://line.me/ti/p/~${contactVal}`} target="_blank" rel="noopener" className="contact-action-btn" style={{background:'rgba(0,200,83,.15)',color:'#06c755',textDecoration:'none'}}>💬 Line</a>}
                   </>
@@ -1320,7 +1349,7 @@ function AdminMarket({currentUser,users}){
                 <span className="badge" style={{background:'rgba(255,166,87,.1)',color:'var(--orange)',border:'1px solid rgba(255,166,87,.3)'}}>เคสจาก {c.old_sales||'-'}</span>
               </div>
               <div className="mkc-contact">📞 <span>{c.contact||'-'}</span>
-                {c.contact&&<button className="btn-ghost" style={{border:'none',background:'none',color:'var(--blue)',cursor:'pointer',fontSize:11}} onClick={()=>navigator.clipboard&&navigator.clipboard.writeText(c.contact)}>คัดลอก</button>}
+                {c.contact&&<button className="btn-ghost" style={{border:'none',background:'none',color:'var(--blue)',cursor:'pointer',fontSize:11}} onClick={()=>copyText(c.contact)}>คัดลอก</button>}
               </div>
               {c.report&&<div className="mkc-report">{String(c.report).slice(0,120)}{c.report.length>120?'...':''}</div>}
               <button className="btn btn-danger" style={{width:'100%',padding:'9px',fontSize:13}} onClick={()=>setConfirm(c.ID)}>🗑 ปิดเคส</button>
@@ -2488,7 +2517,7 @@ function SalesClaimedCases({currentUser,users}){
           🔒 คืนเคสได้หลังจากอีก <strong style={{marginLeft:4}}>{left}</strong>
         </div>}
         <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
-          <button className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',color:'var(--green)'}} onClick={e=>{e.stopPropagation();navigator.clipboard&&navigator.clipboard.writeText(formatContact(c.contact)||'');}}>
+          <button className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',color:'var(--green)'}} onClick={e=>{e.stopPropagation();copyText(formatContact(c.contact)||'');}}>
             <Ico.copy/> {formatContact(c.contact)||'ไม่มีเบอร์'}
           </button>
           {formatContact(c.contact)&&/^\d{9,10}$/.test(String(formatContact(c.contact)).replace(/\D/g,''))&&<a href={`tel:${formatContact(c.contact)}`} onClick={e=>e.stopPropagation()} className="contact-action-btn" style={{background:'rgba(63,185,80,.15)',color:'var(--green)',textDecoration:'none'}}><Ico.phone/>โทร</a>}
