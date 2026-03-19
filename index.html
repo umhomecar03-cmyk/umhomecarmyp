@@ -133,6 +133,17 @@ tr.clickable{cursor:pointer;}
 .sb-stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg3);border-radius:8px;margin-bottom:6px;}
 @media(max-width:900px){.mk-sidebar{display:none;}}
 @media(max-width:600px){.mk-cards-grid{grid-template-columns:1fr;}.mk-hero{padding:16px 16px 0;}.mk-cards-area{padding:12px;}.mk-stats{flex-wrap:wrap;gap:6px;}.mk-stat{min-width:70px;padding:10px 12px;}}
+/* ── Daily Focus ── */
+.focus-block{border-radius:10px;padding:14px 16px;margin-bottom:12px;}
+/* ── Achievement ── */
+.ach-badge{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 12px;border-radius:10px;min-width:60px;transition:all .2s;}
+/* ── Onboarding ── */
+.onboard-progress-dot{height:6px;border-radius:3px;transition:all .3s;}
+/* ── Global Search ── */
+.gs-result{padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;}
+.gs-result:hover{background:var(--bg3);}
+/* ── Mobile tel/line btns ── */
+.contact-action-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;border:none;cursor:pointer;transition:all .15s;}
 /* Notif dot */
 .notif-dot{width:8px;height:8px;background:var(--red);border-radius:50%;display:inline-block;}
 /* Loading */
@@ -439,6 +450,10 @@ const Ico = {
   down: ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6,9 12,15 18,9"/></svg>,
   moon: ()=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>,
   user: ()=><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>,
+  focus: ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12"/></svg>,
+  trophy: ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9H4a2 2 0 01-2-2V5h4m14 4h2a2 2 0 002-2V5h-4"/><path d="M6 5h12v8a6 6 0 01-12 0zm6 13v3m-4 0h8"/></svg>,
+  phone: ()=><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 10.8a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.91 7.91a16 16 0 006.16 6.16l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>,
+  gsearch: ()=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
 };
 
 // ============================================================
@@ -751,6 +766,8 @@ function CaseModal({caseData,users,currentUser,onClose,onUpdated}){
                 : <>
                     <span style={{fontWeight:600}}>{contactVal||'-'}</span>
                     {contactVal&&<button className="btn btn-primary" style={{padding:'3px 14px',fontSize:12,borderRadius:20}} onClick={()=>{try{navigator.clipboard.writeText(contactVal);}catch(e){}}}>Copy</button>}
+                    {contactVal&&/^\d{9,10}$/.test(contactVal.replace(/\D/g,''))&&<a href={`tel:${contactVal}`} className="contact-action-btn" style={{background:'rgba(63,185,80,.15)',color:'var(--green)',textDecoration:'none'}}><Ico.phone/>โทร</a>}
+                    {contactVal&&/^\d{9,10}$/.test(contactVal.replace(/\D/g,''))&&<a href={`https://line.me/ti/p/~${contactVal}`} target="_blank" rel="noopener" className="contact-action-btn" style={{background:'rgba(0,200,83,.15)',color:'#06c755',textDecoration:'none'}}>💬 Line</a>}
                   </>
               }
             </div>
@@ -1814,6 +1831,236 @@ function BookingDetailModal({booking,onClose,onUpdated}){
 }
 
 // ============================================================
+// ONBOARDING TOUR — แนะนำระบบสำหรับเซลส์ใหม่
+// ============================================================
+function OnboardingTour({currentUser,onDone}){
+  const [step,setStep]=useState(0);
+  const steps=[
+    {icon:'🎉',title:'ยินดีต้อนรับสู่ CasePool!',desc:'ระบบจัดการเคสลูกค้าที่ช่วยให้คุณทำงานเป็นระบบ ไม่พลาดโอกาสปิดการขาย',tip:null},
+    {icon:'📊',title:'วันนี้ฉันต้องทำอะไร',desc:'หน้า "วันนี้" บอกทุกอย่างที่ต้องทำ — เคสด่วน เคสค้างนาน และเคสในตลาดที่รอคุณอยู่',tip:'💡 เช็คหน้านี้ทุกเช้าก่อนเริ่มงาน!'},
+    {icon:'🏪',title:'ตลาดเคส',desc:'เคสจากลูกค้าทั่วไปที่รอคนดูแล กดรับเคสที่คุณสนใจ เบอร์ลูกค้าจะแสดงหลังรับ',tip:'⚡ ใครไวได้ก่อน!'},
+    {icon:'📋',title:'เคสของฉัน',desc:'เคสที่แอดมินมอบหมายให้คุณ อัปเดตสถานะทุกวัน และติดตามลูกค้าที่นี่',tip:'⚠️ ไม่อัปเดต 3 วันระบบจะส่งตลาดอัตโนมัติ!'},
+    {icon:'📥',title:'เคสที่รับจากตลาด',desc:'เคสที่คุณรับมาเอง ดูเบอร์ กด "โทร" หรือ "Line" ได้ทันที',tip:'🔒 ต้องรอ 24 ชม. หลังรับเคส ถึงจะคืนตลาดได้'},
+    {icon:'🏆',title:'แดชบอร์ด & เป้าหมาย',desc:'ดูผลงาน ตั้งเป้าเดือนนี้ เก็บ Achievement badge และดูกราฟย้อนหลัง 6 เดือน',tip:'🎯 ตั้งเป้าช่วยให้คุณโฟกัสและทำได้มากขึ้น!'},
+    {icon:'🔍',title:'ค้นหาทั่วทั้งระบบ',desc:'กดไอคอนแว่นขยายที่มุมบนขวาเพื่อค้นหาเคสข้ามหน้าได้ทันที ทั้งเคสของฉันและเคสที่รับจากตลาด',tip:null},
+  ];
+  function finish(){try{localStorage.setItem('cp_onboarded_'+currentUser.userId,'1');}catch(e){}onDone();}
+  const s=steps[step];const isLast=step===steps.length-1;
+  return <div className="overlay" style={{zIndex:9999,background:'rgba(0,0,0,.88)'}}>
+    <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:18,width:'100%',maxWidth:380,padding:'32px 28px',textAlign:'center',boxShadow:'0 24px 64px rgba(0,0,0,.6)',margin:'0 16px'}}>
+      <div style={{display:'flex',justifyContent:'center',gap:5,marginBottom:24}}>
+        {steps.map((_,i)=><div key={i} className="onboard-progress-dot" style={{width:i===step?22:6,background:i<=step?'var(--blue)':'var(--bg4)'}}/>)}
+      </div>
+      <div style={{fontSize:52,marginBottom:16}}>{s.icon}</div>
+      <div style={{fontWeight:800,fontSize:17,marginBottom:10}}>{s.title}</div>
+      <div style={{fontSize:14,color:'var(--text2)',lineHeight:1.75,marginBottom:14}}>{s.desc}</div>
+      {s.tip&&<div style={{background:'rgba(88,166,255,.08)',border:'1px solid rgba(88,166,255,.2)',borderRadius:8,padding:'10px 14px',fontSize:13,color:'var(--blue)',marginBottom:18}}>{s.tip}</div>}
+      <div style={{display:'flex',gap:10,marginTop:8}}>
+        {step>0&&<button className="btn btn-ghost" style={{flex:1,padding:'10px'}} onClick={()=>setStep(s=>s-1)}>← ก่อน</button>}
+        <button className="btn btn-primary" style={{flex:2,padding:'10px',fontWeight:700}} onClick={()=>isLast?finish():setStep(s=>s+1)}>
+          {isLast?'🚀 เริ่มใช้งาน!':'ถัดไป →'}
+        </button>
+      </div>
+      <button onClick={finish} style={{background:'none',border:'none',color:'var(--text3)',fontSize:12,cursor:'pointer',marginTop:12,padding:'4px 8px'}}>ข้ามการแนะนำ</button>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// GLOBAL SEARCH — ค้นหาเคสข้ามหน้า (ยกเว้นหน้าตลาด)
+// ============================================================
+function GlobalSearch({currentUser,onClose,onNavigate}){
+  const [q,setQ]=useState('');
+  const [results,setResults]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const inputRef=useRef();
+  useEffect(()=>{setTimeout(()=>inputRef.current?.focus(),80);},[]);
+  useEffect(()=>{
+    if(q.trim().length<2){setResults([]);return;}
+    setLoading(true);
+    const t=setTimeout(async()=>{
+      const [cr,ccr]=await Promise.all([
+        api('searchCases',{q:q.trim()}),
+        api('getClaimedCases',{sales:currentUser.name})
+      ]);
+      const myCases=(cr.success?(cr.data||[]):[]).filter(c=>c.sales===currentUser.name).map(c=>({...c,_type:'cases'}));
+      const claimed=(ccr.success?(ccr.data||[]):[]).filter(c=>{
+        const lq=q.toLowerCase();
+        return String(c.caseID||'').toLowerCase().includes(lq)||String(c.customername||'').toLowerCase().includes(lq)||String(formatContact(c.contact)||'').includes(lq);
+      }).map(c=>({...c,caseid:c.caseID,status:c.newstatus||c.status,_type:'claimed'}));
+      // dedupe by caseid
+      const seen=new Set();
+      const merged=[...myCases,...claimed].filter(c=>{if(seen.has(c.caseid))return false;seen.add(c.caseid);return true;});
+      setResults(merged);setLoading(false);
+    },380);
+    return ()=>clearTimeout(t);
+  },[q,currentUser.name]);
+
+  return <div className="overlay" style={{alignItems:'flex-start',paddingTop:56,zIndex:200}} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+    <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:14,width:'100%',maxWidth:540,boxShadow:'0 20px 60px rgba(0,0,0,.55)',overflow:'hidden'}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,padding:'12px 16px',borderBottom:'1px solid var(--border)'}}>
+        <Ico.gsearch/>
+        <input ref={inputRef} value={q} onChange={e=>setQ(e.target.value)}
+          placeholder="ค้นหาชื่อลูกค้า เบอร์ หรือรหัสเคส..."
+          style={{flex:1,background:'none',border:'none',outline:'none',fontSize:15,color:'var(--text)'}}
+        />
+        <button className="btn btn-ghost" style={{padding:'4px 8px'}} onClick={onClose}><Ico.x/></button>
+      </div>
+      <div style={{maxHeight:420,overflowY:'auto'}}>
+        {loading?<div style={{padding:28,textAlign:'center',color:'var(--text2)'}}><span className="spin" style={{display:'inline-block',width:18,height:18}}/></div>
+        :q.length<2?<div style={{padding:'22px 20px',textAlign:'center',color:'var(--text3)',fontSize:13}}>🔍 พิมพ์อย่างน้อย 2 ตัวอักษร</div>
+        :results.length===0?<div style={{padding:'28px',textAlign:'center',color:'var(--text2)'}}>
+          <div style={{fontSize:32,marginBottom:8}}>🤷</div>
+          <div style={{fontSize:14}}>ไม่พบผลลัพธ์สำหรับ "{q}"</div>
+        </div>
+        :<>{<div style={{padding:'8px 16px 0',fontSize:11,color:'var(--text3)'}}>พบ {results.length} รายการ</div>}
+        {results.map((c,i)=><div key={i} className="gs-result"
+          onClick={()=>{onNavigate(c._type);onClose();}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+            <span style={{color:'var(--blue)',fontWeight:700,fontSize:13}}>{c.caseid}</span>
+            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+              <span style={{fontSize:11,background:c._type==='claimed'?'rgba(188,140,255,.15)':'rgba(88,166,255,.1)',color:c._type==='claimed'?'var(--purple)':'var(--blue)',padding:'2px 8px',borderRadius:20}}>
+                {c._type==='claimed'?'📥 รับจากตลาด':'📋 เคสของฉัน'}
+              </span>
+              <StatusBadge status={c.status}/>
+            </div>
+          </div>
+          <div style={{fontWeight:600,fontSize:14}}>{c.customername||c.name||'-'}</div>
+          <div style={{fontSize:12,color:'var(--text2)',marginTop:2}}>{displayContact(c.contact)||'-'}</div>
+        </div>)}
+        </>}
+      </div>
+    </div>
+  </div>;
+}
+
+// ============================================================
+// DAILY FOCUS PAGE — วันนี้ฉันต้องทำอะไร
+// ============================================================
+function DailyFocusPage({currentUser,onNavigate}){
+  const [myCases,setMyCases]=useState([]);
+  const [claimedCases,setClaimedCases]=useState([]);
+  const [marketCount,setMarketCount]=useState(0);
+  const [loading,setLoading]=useState(true);
+  const now=Date.now();
+
+  const load=useCallback(()=>{
+    setLoading(true);
+    Promise.all([
+      api('getCases',{sales:currentUser.name,all:'true'}),
+      api('getClaimedCases',{sales:currentUser.name}),
+      api('getMarket',{sales:currentUser.name})
+    ]).then(([cr,ccr,mr])=>{
+      if(cr.success) setMyCases(cr.data||[]);
+      if(ccr.success) setClaimedCases(ccr.data||[]);
+      if(mr.success) setMarketCount((mr.data||[]).filter(c=>c.old_sales!==currentUser.name).length);
+      setLoading(false);
+    });
+  },[currentUser.name]);
+  useEffect(()=>{load();},[load]);
+
+  const CLOSED=['ปิดเคส','รีเจค','ปล่อยแล้ว','ได้รถจากที่อื่น','โยนเคส'];
+  function parseDate(d){const s=String(d||'');const m=s.match(/(\d+)\/(\d+)\/(\d+)\s+(\d+):(\d+)/);if(!m)return null;return new Date(parseInt(m[3]),parseInt(m[2])-1,parseInt(m[1]),parseInt(m[4]),parseInt(m[5]));}
+  function hoursAgo(d){const dt=parseDate(d);if(!dt)return 0;return(now-dt.getTime())/3600000;}
+  function hText(h){if(h<1)return'เมื่อกี้';if(h<24)return`${Math.floor(h)} ชม.ที่แล้ว`;return`${Math.floor(h/24)} วันที่แล้ว`;}
+
+  const active=myCases.filter(c=>!CLOSED.includes(c.status));
+  const autoSendSoon=active.filter(c=>hoursAgo(c.updatedat)>=60);
+  const critical=active.filter(c=>hoursAgo(c.updatedat)>=48&&hoursAgo(c.updatedat)<60);
+  const warn=active.filter(c=>hoursAgo(c.updatedat)>=12&&hoursAgo(c.updatedat)<48);
+  const hotStatuses=['ไปต่อได้','จอง','รอเซ็นต์','รอผล','อนุมัติ'];
+  const hot=active.filter(c=>hotStatuses.includes(c.status));
+
+  const h=new Date().getHours();
+  const greeting=h<12?'🌅 อรุณสวัสดิ์':h<17?'☀️ สวัสดีตอนบ่าย':'🌆 สวัสดีตอนเย็น';
+  const allClear=autoSendSoon.length===0&&critical.length===0&&warn.length===0;
+
+  const FocusBlock=({color,borderColor,bg,title,items,extra=null})=><div className="focus-block" style={{background:bg,border:`1px solid ${borderColor}`}}>
+    <div style={{fontWeight:700,color,marginBottom:8,fontSize:13,display:'flex',alignItems:'center',gap:6}}>{title}</div>
+    {items.slice(0,5).map((c,i)=><div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 8px',borderRadius:7,background:`rgba(255,255,255,.03)`,marginBottom:i<items.length-1?4:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:6,minWidth:0,flex:1}}>
+        <span style={{color:'var(--blue)',fontWeight:700,fontSize:12,flexShrink:0}}>{c.caseid}</span>
+        <span style={{fontSize:13,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{c.customername}</span>
+        <StatusBadge status={c.status}/>
+      </div>
+      <span style={{fontSize:11,color,flexShrink:0,marginLeft:8}}>{hText(hoursAgo(c.updatedat))}</span>
+    </div>)}
+    {items.length>5&&<div style={{fontSize:11,color:'var(--text3)',textAlign:'center',marginTop:4}}>+{items.length-5} รายการ</div>}
+    {extra}
+  </div>;
+
+  return <div className="page">
+    {/* Greeting card */}
+    <div style={{background:'linear-gradient(135deg,#1a2a4a 0%,#0f2233 100%)',border:'1px solid rgba(88,166,255,.2)',borderRadius:14,padding:'20px 22px',marginBottom:18}}>
+      <div style={{fontSize:12,color:'var(--blue)',marginBottom:3,letterSpacing:.5}}>{greeting}</div>
+      <div style={{fontSize:20,fontWeight:800,marginBottom:6}}>{currentUser.name} 👋</div>
+      <div style={{fontSize:12,color:'var(--text2)'}}>
+        {new Date().toLocaleDateString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}
+      </div>
+    </div>
+
+    {/* Quick stats */}
+    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>
+      {[['📋 เคส Active',active.length,'var(--blue)','cases'],['🏪 ตลาดว่าง',marketCount,'var(--green)','market'],['📥 รับแล้ว',claimedCases.length,'var(--purple)','claimed']].map(([l,v,c,key])=>
+        <div key={key} onClick={()=>onNavigate(key)} style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:10,padding:'12px 8px',textAlign:'center',cursor:'pointer',transition:'border-color .15s'}}
+          onMouseOver={e=>e.currentTarget.style.borderColor=c} onMouseOut={e=>e.currentTarget.style.borderColor='var(--border)'}>
+          <div style={{fontSize:12,color:'var(--text2)',marginBottom:4}}>{l}</div>
+          <div style={{fontSize:22,fontWeight:800,color:c}}>{loading?'—':v}</div>
+        </div>
+      )}
+    </div>
+
+    {loading?<Loading/>:
+    <>
+      {/* 🚨 ใกล้ถูกส่งตลาดอัตโนมัติ */}
+      {autoSendSoon.length>0&&<FocusBlock
+        color="var(--red)" borderColor="rgba(248,81,73,.45)" bg="rgba(248,81,73,.07)"
+        title={`🚨 ใกล้ถูกส่งตลาดอัตโนมัติ (${autoSendSoon.length}) — ไม่อัปเดต >60 ชม.`}
+        items={autoSendSoon}
+        extra={<div style={{fontSize:12,color:'rgba(248,81,73,.8)',marginTop:6}}>⚡ รีบอัปเดตก่อนเคสถูกส่งตลาดใน 72 ชม.</div>}
+      />}
+
+      {/* ⚠️ ค้างนาน 48 ชม. */}
+      {critical.length>0&&<FocusBlock
+        color="var(--yellow)" borderColor="rgba(210,153,34,.4)" bg="rgba(210,153,34,.07)"
+        title={`⚠️ ค้างนาน — ควร follow up ด่วน (${critical.length})`}
+        items={critical}
+      />}
+
+      {/* ⏰ 12-48 ชม. */}
+      {warn.length>0&&<FocusBlock
+        color="var(--blue)" borderColor="rgba(88,166,255,.25)" bg="rgba(88,166,255,.05)"
+        title={`⏰ ควร follow up วันนี้ (${warn.length})`}
+        items={warn}
+      />}
+
+      {/* 🎯 โอกาสปิด */}
+      {hot.length>0&&<FocusBlock
+        color="var(--green)" borderColor="rgba(63,185,80,.25)" bg="rgba(63,185,80,.05)"
+        title={`🎯 สถานะดี — โอกาสปิดการขาย (${hot.length})`}
+        items={hot}
+      />}
+
+      {/* All clear */}
+      {allClear&&hot.length===0&&<div style={{textAlign:'center',padding:'36px 0',color:'var(--green)'}}>
+        <div style={{fontSize:52,marginBottom:12}}>✅</div>
+        <div style={{fontWeight:800,fontSize:17}}>ทุกอย่างอัปเดตแล้ว!</div>
+        <div style={{fontSize:13,color:'var(--text2)',marginTop:6}}>คุณกำลังทำได้ยอดเยี่ยมมาก 🎉</div>
+      </div>}
+
+      {/* Market prompt */}
+      {marketCount>0&&<div onClick={()=>onNavigate('market')} style={{background:'rgba(188,140,255,.08)',border:'1px solid rgba(188,140,255,.3)',borderRadius:10,padding:'14px 16px',cursor:'pointer',transition:'all .15s',display:'flex',alignItems:'center',gap:12}}
+        onMouseOver={e=>e.currentTarget.style.borderColor='var(--purple)'} onMouseOut={e=>e.currentTarget.style.borderColor='rgba(188,140,255,.3)'}>
+        <div style={{fontSize:28}}>🏪</div>
+        <div><div style={{fontWeight:700,color:'var(--purple)',fontSize:14}}>ตลาดมีเคสว่าง {marketCount} ใบ</div>
+        <div style={{fontSize:12,color:'var(--text2)',marginTop:2}}>กดเพื่อไปหน้าตลาด →</div></div>
+      </div>}
+    </>}
+    <button className="btn btn-ghost" style={{marginTop:14,width:'100%',fontSize:13}} onClick={load}>🔄 รีเฟรช</button>
+  </div>;
+}
+
+// ============================================================
 // SALES — MARKET (New Card Grid Design)
 // ============================================================
 function SalesMarket({currentUser}){
@@ -2240,10 +2487,12 @@ function SalesClaimedCases({currentUser,users}){
         }}>
           🔒 คืนเคสได้หลังจากอีก <strong style={{marginLeft:4}}>{left}</strong>
         </div>}
-        <div style={{display:'flex',alignItems:'center',gap:8}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
           <button className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',color:'var(--green)'}} onClick={e=>{e.stopPropagation();navigator.clipboard&&navigator.clipboard.writeText(formatContact(c.contact)||'');}}>
             <Ico.copy/> {formatContact(c.contact)||'ไม่มีเบอร์'}
           </button>
+          {formatContact(c.contact)&&/^\d{9,10}$/.test(String(formatContact(c.contact)).replace(/\D/g,''))&&<a href={`tel:${formatContact(c.contact)}`} onClick={e=>e.stopPropagation()} className="contact-action-btn" style={{background:'rgba(63,185,80,.15)',color:'var(--green)',textDecoration:'none'}}><Ico.phone/>โทร</a>}
+          {formatContact(c.contact)&&/^\d{9,10}$/.test(String(formatContact(c.contact)).replace(/\D/g,''))&&<a href={`https://line.me/ti/p/~${formatContact(c.contact)}`} target="_blank" rel="noopener" onClick={e=>e.stopPropagation()} className="contact-action-btn" style={{background:'rgba(0,200,83,.15)',color:'#06c755',textDecoration:'none'}}>💬 Line</a>}
           <button
             className={ok?'btn btn-danger':'btn btn-ghost'}
             style={{fontSize:12,padding:'4px 10px',marginLeft:'auto',
@@ -2266,125 +2515,176 @@ function SalesClaimedCases({currentUser,users}){
 }
 
 // ============================================================
-// SALES — DASHBOARD
+// SALES — DASHBOARD  (Target + Achievement + Performance)
 // ============================================================
 function SalesDashboard({currentUser}){
   const [data,setData]=useState(null);
+  const [allCases,setAllCases]=useState([]);
   const [loading,setLoading]=useState(true);
-  const [userInfo,setUserInfo]=useState(null);
+  const [editTarget,setEditTarget]=useState(false);
+  const [targetInput,setTargetInput]=useState('');
+  const TARGET_KEY='cp_target_'+currentUser.userId;
 
-  useEffect(()=>{
+  function getTarget(){try{return parseInt(localStorage.getItem(TARGET_KEY))||0;}catch(e){return 0;}}
+  function saveTarget(){const t=parseInt(targetInput);if(t>0){try{localStorage.setItem(TARGET_KEY,String(t));}catch(e){}setEditTarget(false);}}
+
+  const load=useCallback(()=>{
     cacheClear(['getDashboard']);
-    api('getDashboard',{role:'Sales',sales:currentUser.name}).then(r=>{
-      if(r.success) setData(r.data);
+    setTargetInput(String(getTarget()||''));
+    Promise.all([
+      api('getDashboard',{role:'Sales',sales:currentUser.name}),
+      api('getCases',{sales:currentUser.name,all:'true'})
+    ]).then(([dr,cr])=>{
+      if(dr.success)setData(dr.data);
+      if(cr.success)setAllCases(cr.data||[]);
       setLoading(false);
     });
   },[currentUser.name]);
+  useEffect(()=>{load();},[load]);
 
   if(loading)return <div className="page"><Loading/></div>;
   if(!data)return <div className="page"><p>ไม่พบข้อมูล</p></div>;
 
-  // แปลง startdate จาก Google Sheets ซึ่งอาจส่งมาหลาย format:
-  // 1) dd/MM/yyyy เช่น "08/08/2021"
-  // 2) ISO string เช่น "2021-08-08T00:00:00.000Z"
-  // 3) Sheets serial number เช่น 44416 (วันที่นับจาก 30/12/1899)
+  // ── startdate helpers ──
   function parseStartDate(startdate){
-    if(!startdate&&startdate!==0) return null;
-    const s=String(startdate).trim();
-    if(!s||s==='') return null;
-
-    // Sheets serial number (pure number)
-    if(/^\d{4,6}$/.test(s)){
-      const serial=parseInt(s);
-      // Excel/Sheets epoch: Jan 1 1900 = serial 1 (แต่มี bug leap year 1900)
-      const d=new Date((serial-25569)*86400000); // แปลงเป็น Unix ms
-      if(!isNaN(d)) return d;
-    }
-
-    // dd/MM/yyyy หรือ d/M/yyyy
-    if(s.includes('/')){
-      const parts=s.split('/');
-      if(parts.length>=3){
-        const p0=parseInt(parts[0]),p1=parseInt(parts[1]),p2=parseInt(parts[2]);
-        // ถ้า part[2] เป็นปีสี่หลัก → dd/MM/yyyy
-        if(parts[2].length===4){
-          const d=new Date(p2, p1-1, p0);
-          if(!isNaN(d)) return d;
-        }
-        // อาจเป็น MM/dd/yyyy
-        const d2=new Date(p2, p0-1, p1);
-        if(!isNaN(d2)) return d2;
-      }
-    }
-
-    // ISO หรือ format อื่นๆ ที่ Date() รองรับ
-    const d=new Date(s);
-    if(!isNaN(d)) return d;
-
-    return null;
+    if(!startdate&&startdate!==0)return null;const s=String(startdate).trim();if(!s)return null;
+    if(/^\d{4,6}$/.test(s)){const d=new Date((parseInt(s)-25569)*86400000);if(!isNaN(d))return d;}
+    if(s.includes('/')){const p=s.split('/');if(p.length>=3){const p0=parseInt(p[0]),p1=parseInt(p[1]),p2=parseInt(p[2]);if(p[2].length===4){const d=new Date(p2,p1-1,p0);if(!isNaN(d))return d;}const d2=new Date(p2,p0-1,p1);if(!isNaN(d2))return d2;}}
+    const d=new Date(s);return isNaN(d)?null:d;
   }
+  function calcDays(sd){const d=parseStartDate(sd);if(!d)return null;const diff=Math.floor((Date.now()-d.getTime())/86400000);return diff>=0?diff:null;}
+  function fmtStart(sd){const d=parseStartDate(sd);if(!d)return null;return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;}
+  const startdate=data?.startdate||currentUser.startdate;
+  const daysWorked=calcDays(startdate);
+  const yearsMonths=daysWorked!=null?(()=>{const y=Math.floor(daysWorked/365),m=Math.floor((daysWorked%365)/30),d=daysWorked%30;if(y>0&&m>0)return`${y} ปี ${m} เดือน`;if(y>0)return`${y} ปี`;if(m>0&&d>0)return`${m} เดือน ${d} วัน`;if(m>0)return`${m} เดือน`;return`${daysWorked} วัน`;})():null;
 
-  function calcDaysWorked(startdate){
-    const d=parseStartDate(startdate);
-    if(!d) return null;
-    const diff=Math.floor((Date.now()-d.getTime())/(1000*60*60*24));
-    return diff>=0?diff:null;
-  }
+  // ── Performance: 6 months ──
+  const WIN_ST=['ปล่อยแล้ว'];
+  const CLOSED_ST=['ปิดเคส','รีเจค','ปล่อยแล้ว','ได้รถจากที่อื่น','โยนเคส'];
+  const months=Array.from({length:6},(_,i)=>{
+    const d=new Date();d.setMonth(d.getMonth()-(5-i));
+    const yy=String(d.getFullYear()).slice(-2),mm=String(d.getMonth()+1).padStart(2,'0');
+    const pre=yy+mm;
+    const label=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][d.getMonth()];
+    const mc=allCases.filter(c=>String(c.caseid||'').startsWith(pre));
+    const total=mc.length,won=mc.filter(c=>WIN_ST.includes(c.status)).length;
+    return{pre,label,total,won,winRate:total>0?Math.round(won/total*100):0};
+  });
+  const curMonth=months[5];
 
-  function formatStartDate(startdate){
-    const d=parseStartDate(startdate);
-    if(!d) return null;
-    const dd=String(d.getDate()).padStart(2,'0');
-    const mm=String(d.getMonth()+1).padStart(2,'0');
-    const yyyy=d.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-  }
+  // ── Target ──
+  const target=getTarget();
+  const soldNow=curMonth.won;
+  const pct=target>0?Math.min(Math.round(soldNow/target*100),100):0;
 
-  const startdate = data?.startdate || currentUser.startdate;
-  const daysWorked = calcDaysWorked(startdate);
-  const yearsMonths = daysWorked!=null
-    ? (()=>{
-        const y=Math.floor(daysWorked/365);
-        const m=Math.floor((daysWorked%365)/30);
-        const d=daysWorked%30;
-        if(y>0&&m>0) return `${y} ปี ${m} เดือน`;
-        if(y>0) return `${y} ปี`;
-        if(m>0&&d>0) return `${m} เดือน ${d} วัน`;
-        if(m>0) return `${m} เดือน`;
-        return `${daysWorked} วัน`;
-      })()
-    : null;
+  // ── Badges ──
+  const BADGES=[
+    {id:'b1',icon:'🌱',label:'ก้าวแรก',req:1},
+    {id:'b3',icon:'⭐',label:'ดาวขึ้น',req:3},
+    {id:'b5',icon:'🔥',label:'กำลังมา',req:5},
+    {id:'b10',icon:'💪',label:'เซลส์ร็อก',req:10},
+    {id:'b20',icon:'💎',label:'ระดับเพชร',req:20},
+  ];
+  const earned=BADGES.filter(b=>soldNow>=b.req);
+  const latest=earned[earned.length-1]||null;
+  const nextB=BADGES.find(b=>soldNow<b.req)||null;
 
   return <div className="page">
-    <div className="page-hd"><div className="page-title">📊 แดชบอร์ดของฉัน</div></div>
-    <div style={{display:'flex',gap:12,marginBottom:20,alignItems:'center'}}>
+    <div className="page-hd"><div className="page-title">📊 แดชบอร์ดของฉัน</div>
+      <button className="btn btn-ghost" style={{fontSize:13}} onClick={load}>🔄</button>
+    </div>
+
+    {/* Profile */}
+    <div style={{display:'flex',gap:12,marginBottom:18,alignItems:'center'}}>
       <div style={{width:64,height:64,borderRadius:'50%',background:'var(--bg3)',border:'2px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
         {currentUser.avatar?<img src={currentUser.avatar} style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<Ico.user/>}
       </div>
-      <div>
-        <div style={{fontWeight:700,fontSize:18}}>{currentUser.name}</div>
+      <div style={{flex:1}}>
+        <div style={{fontWeight:700,fontSize:18,display:'flex',alignItems:'center',gap:8}}>
+          {currentUser.name}{latest&&<span title={latest.label} style={{fontSize:22}}>{latest.icon}</span>}
+        </div>
         <div style={{fontSize:13,color:'var(--text2)'}}>Sales · ประจำเดือนนี้</div>
-        {startdate&&<div style={{marginTop:5,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-          <span style={{fontSize:12,color:'var(--text3)'}}>📅 เริ่ม {formatStartDate(startdate)}</span>
-          {yearsMonths&&<span style={{
-            fontSize:12,fontWeight:700,
-            background:'rgba(88,166,255,.12)',color:'var(--blue)',
-            border:'1px solid rgba(88,166,255,.25)',
-            borderRadius:20,padding:'2px 10px'
-          }}>⏱ {yearsMonths} ({daysWorked} วัน)</span>}
+        {startdate&&<div style={{marginTop:5,display:'flex',gap:6,flexWrap:'wrap',alignItems:'center'}}>
+          <span style={{fontSize:12,color:'var(--text3)'}}>📅 เริ่ม {fmtStart(startdate)}</span>
+          {yearsMonths&&<span style={{fontSize:12,fontWeight:700,background:'rgba(88,166,255,.12)',color:'var(--blue)',border:'1px solid rgba(88,166,255,.25)',borderRadius:20,padding:'2px 10px'}}>⏱ {yearsMonths}</span>}
         </div>}
       </div>
     </div>
-    <div className="stat-grid">
+
+    {/* KPI */}
+    <div className="stat-grid" style={{marginBottom:14}}>
       {[['เคสของฉัน',data.currentCases||0,'var(--blue)'],['รับตลาด',data.claimedCases||0,'var(--purple)'],['ปล่อยแล้ว',data.sold||0,'var(--green)']].map(([l,v,c])=>
         <div key={l} className="stat-card"><div className="stat-num" style={{color:c}}>{v}</div><div className="stat-lbl">{l}</div></div>
       )}
     </div>
+
+    {/* ── Target ── */}
+    <div className="card" style={{marginBottom:14}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+        <div style={{fontWeight:700,fontSize:14}}>🎯 เป้าหมายเดือนนี้</div>
+        <button className="btn btn-ghost" style={{fontSize:12,padding:'3px 10px'}} onClick={()=>{setTargetInput(String(target||''));setEditTarget(v=>!v);}}>
+          {editTarget?'ยกเลิก':'✏️ ตั้งเป้า'}
+        </button>
+      </div>
+      {editTarget&&<div style={{display:'flex',gap:8,marginBottom:12}}>
+        <input type="number" value={targetInput} onChange={e=>setTargetInput(e.target.value)} placeholder="จำนวนเคสที่ต้องปล่อย" style={{flex:1}} min={1}/>
+        <button className="btn btn-primary" style={{padding:'8px 16px'}} onClick={saveTarget}>บันทึก</button>
+      </div>}
+      {target>0?<>
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
+          <span style={{fontSize:13,color:'var(--text2)'}}>ปล่อยแล้ว {soldNow} / {target} เคส</span>
+          <span style={{fontSize:14,fontWeight:700,color:pct>=100?'var(--green)':pct>=70?'var(--blue)':'var(--yellow)'}}>{pct}%</span>
+        </div>
+        <div style={{height:10,background:'var(--bg3)',borderRadius:6,overflow:'hidden',marginBottom:8}}>
+          <div style={{height:'100%',borderRadius:6,transition:'width .5s',background:pct>=100?'var(--green)':pct>=70?'var(--blue)':'var(--yellow)',width:`${pct}%`}}/>
+        </div>
+        {pct>=100?<div style={{fontSize:12,color:'var(--green)',fontWeight:700}}>🎉 บรรลุเป้าหมายแล้ว! ยอดเยี่ยมมาก!</div>
+        :<div style={{fontSize:12,color:'var(--text2)'}}>เหลืออีก <strong style={{color:'var(--blue)'}}>{target-soldNow}</strong> เคสถึงเป้า</div>}
+      </>:<div style={{fontSize:13,color:'var(--text3)',textAlign:'center',padding:'6px 0'}}>กดตั้งเป้าหมายเพื่อติดตามความคืบหน้า</div>}
+    </div>
+
+    {/* ── Achievements ── */}
+    <div className="card" style={{marginBottom:14}}>
+      <div style={{fontWeight:700,fontSize:14,marginBottom:12}}>🏆 Achievement เดือนนี้</div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        {BADGES.map(b=>{const ok=soldNow>=b.req;return <div key={b.id} className="ach-badge" title={`${b.label}: ปิดได้ ${b.req} เคส`}
+          style={{background:ok?'rgba(88,166,255,.08)':'var(--bg3)',border:`1px solid ${ok?'rgba(88,166,255,.3)':'var(--border)'}`,opacity:ok?1:.38,filter:ok?'none':'grayscale(1)'}}>
+          <span style={{fontSize:24}}>{b.icon}</span>
+          <span style={{fontSize:11,fontWeight:700,color:ok?'var(--text)':'var(--text3)'}}>{b.label}</span>
+          <span style={{fontSize:10,color:'var(--text3)'}}>{b.req} เคส</span>
+        </div>;})}
+      </div>
+      {nextB&&<div style={{fontSize:12,color:'var(--text2)',marginTop:10,background:'var(--bg3)',padding:'8px 12px',borderRadius:8}}>
+        🎯 ปิดอีก <strong style={{color:'var(--blue)'}}>{nextB.req-soldNow}</strong> เคส รับ {nextB.icon} <strong>{nextB.label}</strong>
+      </div>}
+    </div>
+
+    {/* ── Performance 6 months ── */}
+    <div className="card" style={{marginBottom:14}}>
+      <div style={{fontWeight:700,fontSize:14,marginBottom:14}}>📈 ผลงาน 6 เดือนล่าสุด</div>
+      <div style={{height:180}}>
+        <BarChart id="perfBar6"
+          labels={months.map(m=>m.label)}
+          datasets={[
+            {label:'เคสทั้งหมด',data:months.map(m=>m.total),backgroundColor:'rgba(88,166,255,.5)'},
+            {label:'ปล่อยแล้ว',data:months.map(m=>m.won),backgroundColor:'rgba(63,185,80,.8)'},
+          ]}
+        />
+      </div>
+      <div style={{display:'flex',gap:6,marginTop:12,overflowX:'auto',paddingBottom:2}}>
+        {months.map((m,i)=><div key={i} style={{flex:1,minWidth:44,textAlign:'center',background:'var(--bg3)',borderRadius:8,padding:'6px 4px',border:i===5?'1px solid var(--blue)':'1px solid transparent'}}>
+          <div style={{fontSize:10,color:'var(--text3)',marginBottom:2}}>{m.label}</div>
+          <div style={{fontSize:14,fontWeight:800,color:m.winRate>=50?'var(--green)':m.winRate>0?'var(--yellow)':'var(--text3)'}}>{m.winRate}%</div>
+          <div style={{fontSize:10,color:'var(--text3)'}}>Win</div>
+        </div>)}
+      </div>
+    </div>
+
+    {/* สถานะ breakdown */}
     {data.statuses&&Object.keys(data.statuses).length>0&&<div className="card">
       <div style={{fontWeight:600,marginBottom:12}}>สถานะเคส</div>
       {Object.entries(data.statuses).map(([s,v])=><div key={s} style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-        <StatusBadge status={s}/>
-        <span style={{fontWeight:700}}>{v}</span>
+        <StatusBadge status={s}/><span style={{fontWeight:700}}>{v}</span>
       </div>)}
     </div>}
   </div>;
@@ -2549,35 +2849,56 @@ function AdminApp({currentUser,onLogout}){
 // SALES APP
 // ============================================================
 function SalesApp({currentUser,onLogout}){
-  const [page,setPage]=useState('market');
+  const [page,setPage]=useState('focus');
   const [users,setUsers]=useState([]);
   const [showNotif,setShowNotif]=useState(false);
   const [notifCount,setNotifCount]=useState(0);
+  const [showSearch,setShowSearch]=useState(false);
+  const [showOnboarding,setShowOnboarding]=useState(false);
 
   useEffect(()=>{
     api('getUsers').then(r=>{if(r.success)setUsers(r.data||[]);});
+    // Notification polling
     function refreshNotif(){api('getNotifications',{sales:currentUser.name}).then(r=>{if(r.success){const u=r.data.filter(n=>n['สถานะ']==='unread');setNotifCount(u.length);}});}
     refreshNotif();
     const t=setInterval(refreshNotif,30000);
+    // Onboarding check — แสดงถ้ายังไม่เคยเห็น
+    try{if(!localStorage.getItem('cp_onboarded_'+currentUser.userId))setShowOnboarding(true);}catch(e){}
     return ()=>clearInterval(t);
-  },[currentUser.name]);
+  },[currentUser.name,currentUser.userId]);
 
-  const pages={market:<SalesMarket currentUser={currentUser}/>,cases:<SalesCurrentCases currentUser={currentUser} users={users}/>,claimed:<SalesClaimedCases currentUser={currentUser} users={users}/>,dashboard:<SalesDashboard currentUser={currentUser}/>};
+  const pages={
+    focus:<DailyFocusPage currentUser={currentUser} onNavigate={k=>setPage(k)}/>,
+    market:<SalesMarket currentUser={currentUser}/>,
+    cases:<SalesCurrentCases currentUser={currentUser} users={users}/>,
+    claimed:<SalesClaimedCases currentUser={currentUser} users={users}/>,
+    dashboard:<SalesDashboard currentUser={currentUser}/>,
+  };
 
   const navItems=[
-    {key:'market',icon:<Ico.market/>,label:'ตลาด'},
-    {key:'cases',icon:<Ico.home/>,label:'เคสของฉัน'},
-    {key:'claimed',icon:<Ico.inbox/>,label:'รับจากตลาด'},
-    {key:'dashboard',icon:<Ico.dash/>,label:'แดชบอร์ด'},
+    {key:'focus',  icon:<Ico.focus/>, label:'วันนี้'},
+    {key:'market', icon:<Ico.market/>,label:'ตลาด'},
+    {key:'cases',  icon:<Ico.home/>,  label:'เคสของฉัน'},
+    {key:'claimed',icon:<Ico.inbox/>, label:'รับตลาด'},
+    {key:'dashboard',icon:<Ico.trophy/>,label:'แดชบอร์ด'},
   ];
 
-  // Top bar
   return <div>
+    {/* Onboarding */}
+    {showOnboarding&&<OnboardingTour currentUser={currentUser} onDone={()=>setShowOnboarding(false)}/>}
+    {/* Global Search overlay */}
+    {showSearch&&<GlobalSearch currentUser={currentUser} onClose={()=>setShowSearch(false)} onNavigate={k=>{setPage(k);setShowSearch(false);}}/>}
+
+    {/* Top bar */}
     <div style={{position:'fixed',top:0,left:0,right:0,height:56,background:'var(--bg2)',borderBottom:'1px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 16px',zIndex:50}}>
-      <div style={{fontWeight:800,color:'var(--blue)'}}>🚗 CasePool</div>
-      <div style={{display:'flex',alignItems:'center',gap:12}}>
-        <div style={{fontSize:14,color:'var(--text2)'}}>{currentUser.name}</div>
-        <button className="btn btn-ghost" style={{padding:'4px 8px'}} onClick={()=>{toggleTheme();}} title="เปลี่ยนธีม">🌓</button>
+      <div style={{fontWeight:800,color:'var(--blue)',display:'flex',alignItems:'center',gap:8}}>🚗 CasePool</div>
+      <div style={{display:'flex',alignItems:'center',gap:8}}>
+        <div style={{fontSize:13,color:'var(--text2)',display:'none'}} className="md-show">{currentUser.name}</div>
+        {/* Global Search button */}
+        <button className="btn btn-ghost" style={{padding:'5px 8px'}} title="ค้นหาเคส" onClick={()=>setShowSearch(true)}>
+          <Ico.gsearch/>
+        </button>
+        <button className="btn btn-ghost" style={{padding:'4px 8px'}} onClick={()=>toggleTheme()} title="เปลี่ยนธีม">🌓</button>
         <button className="btn btn-ghost" style={{padding:'4px 8px',position:'relative'}} onClick={()=>setShowNotif(!showNotif)}>
           <Ico.bell/>
           {notifCount>0&&<span style={{position:'absolute',top:0,right:0,background:'var(--red)',width:16,height:16,borderRadius:'50%',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center',color:'#fff'}}>{notifCount}</span>}
@@ -2585,12 +2906,17 @@ function SalesApp({currentUser,onLogout}){
         <button className="btn btn-ghost" style={{padding:'4px 8px'}} onClick={onLogout}><Ico.logout/></button>
       </div>
     </div>
-    <div style={{paddingTop:56}}>{pages[page]||pages.market}</div>
+
+    {/* Page content */}
+    <div style={{paddingTop:56}}>{pages[page]||pages.focus}</div>
+
+    {/* Bottom Nav */}
     <div className="bottom-nav">
       {navItems.map(n=><div key={n.key} className={`bottom-nav-item ${page===n.key?'active':''}`} onClick={()=>setPage(n.key)}>
         {n.icon}<span>{n.label}</span>
       </div>)}
     </div>
+
     {showNotif&&<NotifPanel user={currentUser} onClose={()=>setShowNotif(false)} onCountChange={setNotifCount}/>}
   </div>;
 }
