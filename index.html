@@ -2173,37 +2173,95 @@ function SalesClaimedCases({currentUser,users}){
   const [loading,setLoading]=useState(true);
   const [sel,setSel]=useState(null);
   const [confirm,setConfirm]=useState(null);
+  const [now,setNow]=useState(Date.now()); // tick ทุก 1 นาที เพื่ออัปเดต countdown
 
   const load=useCallback(()=>{setLoading(true);api('getClaimedCases',{sales:currentUser.name}).then(r=>{if(r.success)setCases(r.data||[]);setLoading(false);});},[currentUser.name]);
   useEffect(()=>{load();},[load]);
 
-  async function returnCase(caseId){
-    await api('returnCase',{caseId,sales:currentUser.name});
+  // อัปเดต countdown ทุก 1 นาที
+  useEffect(()=>{
+    const t=setInterval(()=>setNow(Date.now()),60000);
+    return ()=>clearInterval(t);
+  },[]);
+
+  // แปลง AssignedAt (dd/MM/yyyy HH:mm:ss) → Date object
+  function parseAssignedAt(s){
+    if(!s) return null;
+    const m=String(s).match(/(\d+)\/(\d+)\/(\d+)\s+(\d+):(\d+)/);
+    if(!m) return null;
+    return new Date(parseInt(m[3]),parseInt(m[2])-1,parseInt(m[1]),parseInt(m[4]),parseInt(m[5]));
+  }
+
+  // คืนได้หรือยัง? (ครบ 24 ชม. แล้ว)
+  function canReturn(c){
+    const dt=parseAssignedAt(c.AssignedAt||c['วันที่รับเคส']);
+    if(!dt) return true; // ไม่มีข้อมูล → ให้คืนได้
+    return (now - dt.getTime()) >= 24*3600*1000;
+  }
+
+  // เวลาที่เหลือ เช่น "18 ชม. 32 น."
+  function timeLeft(c){
+    const dt=parseAssignedAt(c.AssignedAt||c['วันที่รับเคส']);
+    if(!dt) return '';
+    const ms=24*3600*1000-(now-dt.getTime());
+    if(ms<=0) return '';
+    const h=Math.floor(ms/3600000);
+    const min=Math.floor((ms%3600000)/60000);
+    return h>0?`${h} ชม. ${min} น.`:`${min} น.`;
+  }
+
+  async function doReturn(caseId){
+    const r=await api('returnCase',{caseId,sales:currentUser.name});
+    if(!r.success){ alert(r.error||'ไม่สามารถคืนเคสได้'); return; }
     load();
   }
 
   return <div className="page">
     <div className="page-hd"><div className="page-title">📥 เคสที่รับจากตลาด</div><button className="btn btn-ghost" onClick={load}>🔄</button></div>
     {loading?<SkeletonCards n={3}/>:cases.length===0?<div style={{textAlign:'center',padding:40,color:'var(--text2)'}}>ยังไม่มีเคสที่รับจากตลาด</div>:
-    cases.map((c,i)=><div key={i} className="market-card" onClick={()=>setSel(c)} style={{cursor:'pointer'}}>
-      <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
-        <span style={{color:'var(--blue)',fontWeight:700}}>{c.caseID}</span>
-        <StatusBadge status={c.newstatus||c.status}/>
-      </div>
-      <div style={{fontWeight:500,marginBottom:4}}>{c.customername}</div>
-      <div style={{fontSize:12,color:'var(--text2)',marginBottom:6}}>
-        รับมาจาก: <span style={{color:'var(--orange)'}}>{c.fromsales||'-'}</span>
-        {' · '}รับเมื่อ: {String(c.AssignedAt||'').split(' ')[0]}
-      </div>
-      <div style={{display:'flex',alignItems:'center',gap:8}}>
-        <button className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',color:'var(--green)'}} onClick={e=>{e.stopPropagation();navigator.clipboard&&navigator.clipboard.writeText(formatContact(c.contact)||'');}}>
-          <Ico.copy/> {formatContact(c.contact)||'ไม่มีเบอร์'}
-        </button>
-        <button className="btn btn-danger" style={{fontSize:12,padding:'4px 10px',marginLeft:'auto'}} onClick={e=>{e.stopPropagation();setConfirm(c.caseID);}}>↩ คืนเคส</button>
-      </div>
-    </div>)}
+    cases.map((c,i)=>{
+      const ok=canReturn(c);
+      const left=timeLeft(c);
+      return <div key={i} className="market-card" onClick={()=>setSel(c)} style={{cursor:'pointer'}}>
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:8}}>
+          <span style={{color:'var(--blue)',fontWeight:700}}>{c.caseID}</span>
+          <StatusBadge status={c.newstatus||c.status}/>
+        </div>
+        <div style={{fontWeight:500,marginBottom:4}}>{c.customername}</div>
+        <div style={{fontSize:12,color:'var(--text2)',marginBottom:6}}>
+          รับมาจาก: <span style={{color:'var(--orange)'}}>{c.fromsales||'-'}</span>
+          {' · '}รับเมื่อ: {String(c.AssignedAt||'').split(' ')[0]}
+        </div>
+        {/* แถบ countdown เมื่อยังล็อคอยู่ */}
+        {!ok&&<div style={{
+          display:'flex',alignItems:'center',gap:6,
+          background:'rgba(210,153,34,.10)',border:'1px solid rgba(210,153,34,.35)',
+          borderRadius:6,padding:'5px 10px',marginBottom:8,fontSize:12,color:'var(--yellow)'
+        }}>
+          🔒 คืนเคสได้หลังจากอีก <strong style={{marginLeft:4}}>{left}</strong>
+        </div>}
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <button className="btn btn-ghost" style={{fontSize:12,padding:'4px 10px',color:'var(--green)'}} onClick={e=>{e.stopPropagation();navigator.clipboard&&navigator.clipboard.writeText(formatContact(c.contact)||'');}}>
+            <Ico.copy/> {formatContact(c.contact)||'ไม่มีเบอร์'}
+          </button>
+          <button
+            className={ok?'btn btn-danger':'btn btn-ghost'}
+            style={{fontSize:12,padding:'4px 10px',marginLeft:'auto',
+              opacity:ok?1:0.45,cursor:ok?'pointer':'not-allowed',
+              border:ok?'':'1px solid rgba(210,153,34,.35)',
+              color:ok?'':'var(--yellow)'
+            }}
+            disabled={!ok}
+            title={ok?'คืนเคสกลับตลาด':'ต้องรอ 24 ชม. หลังรับเคสก่อนคืนตลาด'}
+            onClick={e=>{e.stopPropagation();if(ok)setConfirm(c.caseID);}}
+          >
+            {ok?'↩ คืนเคส':'🔒 ยังคืนไม่ได้'}
+          </button>
+        </div>
+      </div>;
+    })}
     {sel&&<CaseModal caseData={{...sel,caseid:sel.caseID}} users={users} currentUser={currentUser} onClose={()=>setSel(null)} onUpdated={load}/>}
-    {confirm&&<Confirm msg={`คืนเคส ${confirm} กลับตลาด?`} onOk={()=>{returnCase(confirm);setConfirm(null);}} onCancel={()=>setConfirm(null)}/>}
+    {confirm&&<Confirm msg={`คืนเคส ${confirm} กลับตลาด?`} onOk={()=>{doReturn(confirm);setConfirm(null);}} onCancel={()=>setConfirm(null)}/>}
   </div>;
 }
 
