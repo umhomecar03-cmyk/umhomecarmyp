@@ -191,11 +191,9 @@ try{
 const {useState,useEffect,useCallback,useRef,createContext,useContext} = React;
 
 // ============================================================
-// ⚙️ CONFIG — Supabase
+// ⚙️ CONFIG — ใส่ URL ของ Apps Script Web App ตรงนี้
 // ============================================================
-const SUPA_URL = 'https://hjcogqfkwivezpqivwoz.supabase.co';
-const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhqY29ncWZrd2l2ZXpwcWl2d296Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NDc4NDgsImV4cCI6MjA4OTUyMzg0OH0.-2BrFbaRL3lJ5Gukf7rB3dSF7Ju4qj3RuLJyNJT-3QI';
-const API_URL  = SUPA_URL; // compat: ใช้ตรวจสอบว่ามี backend ไหม
+const API_URL = 'https://script.google.com/macros/s/AKfycbw_E_TBpe_2HMjcbMftukS2aJkQjvXcVlf7uQ9T1Xn1kdGdVLmVaOLfZeMMGk7hdG3vzw/exec';
 
 // ── Theme persistence ──
 (function(){
@@ -318,319 +316,43 @@ const INVALIDATE_MAP = {
 };
 
 async function api(action, data={}) {
-  // ── Cache check ──
+  if(!API_URL) return demoApi(action, data);
+
+  const isGet = ['getCases','getMarket','getUsers','getBookings','getDashboard','getHistory','getNotifications','getClaimedCases','searchCases'].includes(action);
+
+  // ใช้ cache สำหรับ GET actions
   if(CACHEABLE.includes(action)){
-    const cached=cacheGet(action,data);
+    const cached = cacheGet(action, data);
     if(cached) return cached;
   }
 
-  try{
-    const result = await sbApi(action,data);
-    if(CACHEABLE.includes(action)&&result.success) cacheSet(action,data,result);
+  try {
+    let url, opts;
+    if(isGet) {
+      const q=new URLSearchParams({action,...data}).toString();
+      url=API_URL+'?'+q;
+      opts={method:'GET',redirect:'follow',mode:'cors'};
+    } else {
+      url=API_URL+'?action='+action;
+      opts={method:'POST',redirect:'follow',mode:'cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(data)};
+    }
+    const r=await fetch(url, opts);
+    const text=await r.text();
+    let result;
+    try{result=JSON.parse(text);}catch(e){result={success:false,error:'Parse error: '+text.slice(0,100)};}
+
+    // เก็บ cache และ invalidate
+    if(CACHEABLE.includes(action) && result.success) cacheSet(action, data, result);
     if(INVALIDATE_MAP[action]) cacheClear(INVALIDATE_MAP[action]);
+
     return result;
-  }catch(e){
+  } catch(e) {
     return {success:false,error:e.toString()};
   }
 }
 
-// ── Supabase REST helper ──
-function nowTH(){
-  const d=new Date(),p=n=>String(n).padStart(2,'0');
-  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-}
-
-async function sbQ(method,table,q={},body=null){
-  const url=new URL(`${SUPA_URL}/rest/v1/${table}`);
-  Object.entries(q).forEach(([k,v])=>url.searchParams.set(k,String(v)));
-  const h={'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'};
-  if(method!=='GET') h['Prefer']='return=representation';
-  const opts={method,headers:h};
-  if(body!==null) opts.body=JSON.stringify(body);
-  const r=await fetch(url.toString(),opts);
-  if(r.status===204) return [];
-  const t=await r.text();
-  try{return JSON.parse(t);}catch(e){return [];}
-}
-
-// ── Column mappers (DB lowercase → App format) ──
-function mapMarket(r){return{ID:r.id,name:r.name,contact:r.contact,report:r.report,status:r.status,old_sales:r.old_sales,ExpiredSales:r.expiredsales||'',PoolStatus:r.poolstatus};}
-function mapClaimed(r){return{caseID:r.caseid,customername:r.customername,contact:r.contact,report:r.report,status:r.status,fromsales:r.fromsales,sale:r.sale,newstatus:r.newstatus,AssignedAt:r.assignedat,Notes:r.notes||'',date:r.assignedat};}
-function mapBooking(r){return{'วันที่':r.createdat,CaseID:r.caseid,'เซลส์':r.sales,'ลูกค้า':r.customer,Facebook:r.facebook||'',Ads:r.ads||'','รถ':r.brand||'','รุ่น':r.model||'','ทะเบียน':r.plate||'','สถานะ':r.status,'หมายเหตุ':r.note||''};}
-function mapHistory(r){return{historyId:'H'+r.id,'รหัสเคส':r.caseid,'เซลส์':r.sales,action:r.action,detail:r.detail||'','วันที่':r.createdat};}
-function mapNotif(r){return{notifId:'N'+r.id,'เซลส์':r.sales,'รหัสเคส':r.caseid,message:r.message,'วันที่':r.createdat,'สถานะ':r.status};}
-
-// ── History & Notification writers ──
-function sbHist(caseid,sales,action,detail){sbQ('POST','history',{},{caseid,sales:sales||'ระบบ',action,detail:detail||'',createdat:nowTH()});}
-function sbNotif(sales,caseid,message){sbQ('POST','notifications',{},{sales,caseid,message,createdat:nowTH(),status:'unread'});}
-
-// ── Generate CaseID ──
-async function genCaseId(){
-  const d=new Date(),pre=String(d.getFullYear()).slice(-2)+String(d.getMonth()+1).padStart(2,'0');
-  const rows=await sbQ('GET','cases',{select:'caseid',caseid:`like.${pre}*`,order:'caseid.desc',limit:'1'});
-  let max=0;
-  if(rows?.length){const id=String(rows[0].caseid||'');if(id.startsWith(pre))max=parseInt(id.slice(4))||0;}
-  return pre+String(max+1).padStart(3,'0');
-}
-
-// ── Smart Auto-Assign ──
-async function getSmartAssignSales(){
-  const [users,cs]=await Promise.all([
-    sbQ('GET','users',{role:'eq.Sales',status:'eq.active',select:'name'}),
-    sbQ('GET','cases',{caseid:`like.${String(new Date().getFullYear()).slice(-2)+String(new Date().getMonth()+1).padStart(2,'0')}*`,select:'sales,status'})
-  ]);
-  const salesList=(users||[]).map(u=>u.name);
-  if(!salesList.length) return null;
-  const CLOSED=['ปิดเคส','รีเจค','ปล่อยแล้ว','ได้รถจากที่อื่น','โยนเคส'];
-  const stats={};salesList.forEach(s=>stats[s]={total:0,closed:0,active:0});
-  (cs||[]).forEach(c=>{if(!stats[c.sales])return;stats[c.sales].total++;CLOSED.includes(c.status)?stats[c.sales].closed++:stats[c.sales].active++;});
-  let best=null,bsc=-1;
-  salesList.forEach(s=>{const st=stats[s];const sc=(st.total>0?st.closed/st.total:0)*0.7+(1/(st.active+1))*0.3;if(sc>bsc){bsc=sc;best=s;}});
-  return best||salesList[0];
-}
-
-// ── Main Supabase API dispatcher ──
-async function sbApi(action,data){
-  const CLOSED=['ปิดเคส','รีเจค','ปล่อยแล้ว','ได้รถจากที่อื่น','โยนเคส'];
-
-  switch(action){
-
-    case 'login':{
-      const rows=await sbQ('GET','users',{username:`eq.${data.username}`,password:`eq.${data.password}`,status:'eq.active'});
-      if(!rows?.length) return {success:false,error:'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'};
-      const u=rows[0];
-      return {success:true,user:{userId:u.userid,username:u.username,name:u.name,role:u.role,avatar:u.avatar||'',startdate:u.startdate||''}};
-    }
-
-    case 'getUsers':{
-      const rows=await sbQ('GET','users',{select:'userid,username,name,role,status,avatar,startdate',order:'userid.asc'});
-      return {success:true,data:(rows||[]).map(u=>({userId:u.userid,username:u.username,name:u.name,role:u.role,status:u.status,avatar:u.avatar||'',startdate:u.startdate||''}))};
-    }
-
-    case 'addUser':{
-      const ex=await sbQ('GET','users',{select:'userid',order:'userid.desc',limit:'1'});
-      const maxN=ex?.length?parseInt(String(ex[0].userid||'').replace('U',''))||0:0;
-      const userid='U'+String(maxN+1).padStart(3,'0');
-      await sbQ('POST','users',{},{userid,username:data.username,password:data.password||'1234',name:data.name,status:'active',role:data.role||'Sales',avatar:data.avatar||''});
-      return {success:true};
-    }
-
-    case 'updateUser':{
-      const upd={};['name','password','status','avatar'].forEach(k=>{if(data[k]!==undefined)upd[k]=data[k];});
-      await sbQ('PATCH','users',{userid:`eq.${data.userId}`},upd);
-      return {success:true};
-    }
-
-    case 'getCases':{
-      const d=new Date(),pre=String(d.getFullYear()).slice(-2)+String(d.getMonth()+1).padStart(2,'0');
-      const q={order:'caseid.desc'};
-      if(!data.all) q.caseid=`like.${pre}*`;
-      if(data.sales&&data.sales!=='all') q.sales=`eq.${data.sales}`;
-      if(data.status) q.status=`eq.${data.status}`;
-      const rows=await sbQ('GET','cases',q);
-      return {success:true,data:rows||[]};
-    }
-
-    case 'addCase':{
-      const id=data.caseid||await genCaseId(),ts=nowTH();
-      let assignedSales=data.sales,autoAssigned=false;
-      if(!assignedSales||String(assignedSales).trim()===''){assignedSales=await getSmartAssignSales();autoAssigned=true;}
-      await sbQ('POST','cases',{},{caseid:id,customername:data.customername,contact:data.contact||'',report:data.report||'',status:data.status||'รอข้อมูล',sales:assignedSales,createdat:ts,updatedat:ts,sent:data.sent||'ปกติ'});
-      sbHist(id,assignedSales,'เพิ่มเคส',(autoAssigned?'[Auto-Assign] ':'')+'เพิ่มเคสใหม่: '+data.customername);
-      if(autoAssigned&&assignedSales) sbNotif(assignedSales,id,'📋 ได้รับมอบหมายเคสใหม่ '+id+' ('+data.customername+') อัตโนมัติ');
-      return {success:true,caseId:id,sales:assignedSales,autoAssigned};
-    }
-
-    case 'updateCase':{
-      const upd={updatedat:nowTH()};
-      ['status','report','sales','customername','contact','sent','attachment'].forEach(k=>{if(data[k]!==undefined)upd[k]=data[k];});
-      await sbQ('PATCH','cases',{caseid:`eq.${data.caseid}`},upd);
-      sbHist(data.caseid,data.changedBy||'ระบบ','แก้ไข',data.detail||'เปลี่ยนสถานะเป็น '+data.status);
-      return {success:true};
-    }
-
-    case 'searchCases':{
-      const q=encodeURIComponent(data.q||'');
-      const rows=await sbQ('GET','cases',{or:`caseid.ilike.*${data.q}*,customername.ilike.*${data.q}*,contact.ilike.*${data.q}*`});
-      return {success:true,data:rows||[]};
-    }
-
-    case 'getMarket':{
-      const rows=await sbQ('GET','market',{poolstatus:'eq.เปิด'});
-      let filtered=(rows||[]);
-      if(data.sales) filtered=filtered.filter(r=>!r.expiredsales||!String(r.expiredsales).split(',').includes(data.sales));
-      for(let i=filtered.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[filtered[i],filtered[j]]=[filtered[j],filtered[i]];}
-      return {success:true,data:filtered.map(mapMarket)};
-    }
-
-    case 'sendToMarket':{
-      const ex=await sbQ('GET','market',{id:`eq.${data.caseId}`});
-      if(ex?.length){
-        const expList=ex[0].expiredsales?ex[0].expiredsales.split(',').filter(Boolean):[];
-        if(data.sales&&!expList.includes(data.sales))expList.push(data.sales);
-        await sbQ('PATCH','market',{id:`eq.${data.caseId}`},{poolstatus:'เปิด',expiredsales:expList.join(',')});
-      } else {
-        const cr=await sbQ('GET','cases',{caseid:`eq.${data.caseId}`});
-        if(!cr?.length) return {success:false,error:'ไม่พบเคส'};
-        const c=cr[0];
-        await sbQ('POST','market',{},{id:data.caseId,name:c.customername,contact:c.contact,report:c.report,status:c.status,old_sales:data.sales||c.sales,expiredsales:data.sales||c.sales,poolstatus:'เปิด'});
-      }
-      sbHist(data.caseId,data.sales||'ระบบ','ส่งตลาด','ส่งเคสขึ้นตลาด');
-      return {success:true};
-    }
-
-    case 'closeMarketCase':{
-      await sbQ('PATCH','market',{id:`eq.${data.caseId}`},{poolstatus:'ปิด'});
-      await sbQ('PATCH','cases',{caseid:`eq.${data.caseId}`},{status:'ปิดเคส',updatedat:nowTH()});
-      sbHist(data.caseId,data.closedBy||'แอดมิน','ปิดเคส','ปิดเคสออกจากตลาด');
-      return {success:true};
-    }
-
-    case 'claimCase':{
-      const mk=await sbQ('GET','market',{id:`eq.${data.caseId}`,poolstatus:'eq.เปิด'});
-      if(!mk?.length) return {success:false,error:'เคสนี้ถูกรับไปแล้ว'};
-      const m=mk[0],ts=nowTH();
-      await sbQ('POST','claimedcases',{},{caseid:data.caseId,customername:m.name,contact:m.contact,report:m.report,status:m.status,fromsales:m.old_sales,sale:data.sales,newstatus:m.status,assignedat:ts,notes:''});
-      const exp=m.expiredsales?m.expiredsales+','+data.sales:data.sales;
-      await sbQ('PATCH','market',{id:`eq.${data.caseId}`},{poolstatus:'ปิด',expiredsales:exp});
-      sbHist(data.caseId,data.sales,'รับเคส','รับเคสจากตลาด');
-      sbNotif(data.sales,data.caseId,'✅ รับเคส '+data.caseId+' เรียบร้อย');
-      return {success:true};
-    }
-
-    case 'getClaimedCases':{
-      const q={order:'assignedat.desc'};
-      if(data.sales) q.sale=`eq.${data.sales}`;
-      const rows=await sbQ('GET','claimedcases',q);
-      return {success:true,data:(rows||[]).map(mapClaimed)};
-    }
-
-    case 'updateClaimed':{
-      const upd={};
-      if(data.newstatus!==undefined)upd.newstatus=data.newstatus;
-      if(data.Notes!==undefined)upd.notes=data.Notes;
-      const q={caseid:`eq.${data.caseId}`};if(data.sales)q.sale=`eq.${data.sales}`;
-      await sbQ('PATCH','claimedcases',q,upd);
-      sbHist(data.caseId,data.sales||'ระบบ','แก้ไข','เปลี่ยนสถานะเป็น '+data.newstatus);
-      return {success:true};
-    }
-
-    case 'returnCase':{
-      const isSkip=String(data.sales||'').startsWith('_skip_');
-      const realSales=isSkip?data.sales.replace('_skip_',''):data.sales;
-      if(!isSkip){
-        const cl=await sbQ('GET','claimedcases',{caseid:`eq.${data.caseId}`,sale:`eq.${realSales}`});
-        if(cl?.length&&cl[0].assignedat){
-          const m=String(cl[0].assignedat).match(/(\d+)\/(\d+)\/(\d+)\s+(\d+):(\d+)/);
-          if(m){const t=new Date(parseInt(m[3]),parseInt(m[2])-1,parseInt(m[1]),parseInt(m[4]),parseInt(m[5]));const hrs=(Date.now()-t.getTime())/3600000;if(hrs<24){const rem=Math.ceil(24-hrs);return {success:false,error:'ต้องรออย่างน้อย 24 ชั่วโมงหลังรับเคส ก่อนคืนตลาด (เหลือ '+rem+' ชม.)'};}}}
-      }
-      await sbQ('DELETE','claimedcases',{caseid:`eq.${data.caseId}`,sale:`eq.${realSales}`});
-      const [mk,uRows]=await Promise.all([sbQ('GET','market',{id:`eq.${data.caseId}`}),sbQ('GET','users',{role:'eq.Sales',status:'eq.active',select:'name'})]);
-      const allSales=(uRows||[]).map(u=>u.name);
-      if(mk?.length){
-        const exp=mk[0].expiredsales?String(mk[0].expiredsales).split(',').filter(Boolean):[];
-        if(!exp.includes(realSales))exp.push(realSales);
-        const done=allSales.every(n=>exp.includes(n));
-        await sbQ('PATCH','market',{id:`eq.${data.caseId}`},{poolstatus:done?'ปิด':'เปิด',expiredsales:exp.join(',')});
-        if(done)await sbQ('PATCH','cases',{caseid:`eq.${data.caseId}`},{status:'ปิดเคส',updatedat:nowTH()});
-        sbHist(data.caseId,realSales,'คืนเคส','ส่งเคสคืนตลาด');
-        return {success:true,allClosed:done};
-      } else {
-        const cr=await sbQ('GET','cases',{caseid:`eq.${data.caseId}`});
-        if(cr?.length){const c=cr[0];await sbQ('POST','market',{},{id:data.caseId,name:c.customername,contact:c.contact,report:c.report,status:c.status,old_sales:realSales,expiredsales:realSales,poolstatus:'เปิด'});}
-        sbHist(data.caseId,realSales,'คืนเคส','ส่งเคสคืนตลาด');
-        return {success:true,allClosed:false};
-      }
-    }
-
-    case 'getBookings':{
-      const q={order:'id.desc'};if(data.sales)q.sales=`eq.${data.sales}`;
-      const rows=await sbQ('GET','bookings',q);
-      return {success:true,data:(rows||[]).map(mapBooking)};
-    }
-
-    case 'addBooking':{
-      await sbQ('POST','bookings',{},{createdat:nowTH(),caseid:data.caseId,sales:data.sales,customer:data.customer,facebook:data.facebook||'',ads:data.ads||'',brand:data.brand||'',model:data.model||'',plate:data.plate||'',status:data.status||'จองแล้ว',note:data.note||''});
-      sbHist(data.caseId,data.sales,'จอง','เพิ่มการจอง '+(data.brand||'')+' '+(data.model||''));
-      return {success:true};
-    }
-
-    case 'updateBooking':{
-      const upd={};if(data.status!==undefined)upd.status=data.status;if(data.note!==undefined)upd.note=data.note;
-      await sbQ('PATCH','bookings',{caseid:`eq.${data.caseId}`},upd);
-      return {success:true};
-    }
-
-    case 'getDashboard':{
-      const d=new Date(),pre=String(d.getFullYear()).slice(-2)+String(d.getMonth()+1).padStart(2,'0');
-      const [cs,cl,users]=await Promise.all([
-        sbQ('GET','cases',{caseid:`like.${pre}*`}),
-        sbQ('GET','claimedcases',{}),
-        sbQ('GET','users',{role:'eq.Sales',status:'eq.active',select:'userid,name,avatar,startdate'})
-      ]);
-      const cases=cs||[],claimed=cl||[],salesList=users||[];
-      if(data.role==='Admin'){
-        return {success:true,data:{
-          sales:salesList.map(u=>{
-            const my=cases.filter(c=>c.sales===u.name);
-            const st={};my.forEach(c=>{st[c.status]=(st[c.status]||0)+1;});
-            return {name:u.name,avatar:u.avatar||'',currentCases:my.length,claimedCases:claimed.filter(c=>c.sale===u.name).length,sold:my.filter(c=>c.status==='ปล่อยแล้ว').length,statuses:st};
-          }),
-          total:{cases:cases.length}
-        }};
-      }
-      const my=cases.filter(c=>c.sales===data.sales);
-      const st={};my.forEach(c=>{st[c.status]=(st[c.status]||0)+1;});
-      const me=salesList.find(u=>u.name===data.sales);
-      return {success:true,data:{currentCases:my.length,claimedCases:claimed.filter(c=>c.sale===data.sales).length,sold:my.filter(c=>c.status==='ปล่อยแล้ว').length,statuses:st,startdate:me?.startdate||''}};
-    }
-
-    case 'getHistory':{
-      const q={order:'id.desc'};if(data.caseId)q.caseid=`eq.${data.caseId}`;
-      const rows=await sbQ('GET','history',q);
-      return {success:true,data:(rows||[]).map(mapHistory)};
-    }
-
-    case 'getNotifications':{
-      const q={order:'id.desc'};if(data.sales)q.sales=`eq.${data.sales}`;
-      const rows=await sbQ('GET','notifications',q);
-      return {success:true,data:(rows||[]).map(mapNotif)};
-    }
-
-    case 'markNotifRead':{
-      const id=String(data.notifId||'').replace('N','');
-      await sbQ('PATCH','notifications',{id:`eq.${id}`},{status:'read'});
-      return {success:true};
-    }
-
-    case 'deleteCase':{
-      const cid=data.caseId||data.caseid;
-      await Promise.all([sbQ('DELETE','cases',{caseid:`eq.${cid}`}),sbQ('DELETE','market',{id:`eq.${cid}`}),sbQ('DELETE','claimedcases',{caseid:`eq.${cid}`})]);
-      sbHist(cid,data.deletedBy||'แอดมิน','ลบเคส','ลบเคสออกจากระบบ');
-      return {success:true};
-    }
-
-    case 'adminPullCase':
-    case 'adminChangeSales':{
-      await sbQ('PATCH','cases',{caseid:`eq.${data.caseId}`},{sales:data.newSales,updatedat:nowTH()});
-      sbHist(data.caseId,'แอดมิน',action==='adminPullCase'?'ดึงเคส':'เปลี่ยนเซลส์','เปลี่ยนเป็น '+data.newSales);
-      return {success:true};
-    }
-
-    case 'getSmartAssign':{
-      const sales=await getSmartAssignSales();
-      return {success:true,sales};
-    }
-
-    case 'uploadImage':
-    case 'deleteImage':
-    case 'checkInactive':
-      return {success:true};
-
-    default:
-      return {success:true,message:'Supabase API Ready'};
-  }
-}
+// warm-up: ping Apps Script ตอนโหลดหน้า เพื่อลด cold start
+if(API_URL){ setTimeout(()=>fetch(API_URL+'?action=ping',{method:'GET',mode:'cors'}).catch(()=>{}), 500); }
 
 
 // ============================================================
