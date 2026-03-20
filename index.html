@@ -729,7 +729,7 @@ function CaseModal({caseData,users,currentUser,onClose,onUpdated}){
   const isAdmin=currentUser.role==='Admin';
   const isClaimed=!!caseData.fromsales;
   const caseId=caseData.caseid||caseData.caseID;
-  const contactRaw=caseData.contact||'';
+  const contactRaw=String(caseData.contact||'');
   const contactVal=formatContact(contactRaw);
   const isQR=contactRaw.startsWith('http')||contactRaw.startsWith('data:image');
 
@@ -1291,7 +1291,7 @@ function AdminCurrentCases({currentUser,users}){
               <td style={{fontSize:13,color:'var(--text2)'}}>{displayContact(c.contact)}</td>
               <td><StatusBadge status={c.status}/></td>
               <td><span style={{color:'var(--purple)'}}>{c.sales}</span></td>
-              <td style={{fontSize:12,color:'var(--text3)'}}>{String(c.updatedat||'').split(' ')[0]}</td>
+              <td style={{fontSize:12,color:'var(--text3)'}}>{String(c.updatedat||'').replace('T',' ').slice(0,16)}</td>
             </tr>)}
           </tbody>
         </table>
